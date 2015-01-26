@@ -1,0 +1,106 @@
+<style type="text/css">
+table.col_heading_help_table {
+    font-size: 12px;
+	border-collapse: collapse;
+}
+table.col_heading_help_table td, table.col_heading_help_table tr, table.col_heading_help_table th{
+	padding: 2px 5px;
+}
+</style>
+<table class="col_heading_help_table">
+	<thead class="colorbox_head">
+		<th>Column Name</th>
+		<th>Description</th>
+		<th>Example</th>
+	</thead>
+	<tr><td class="blue strong">SANGER ID</td><td>Assigned on arrival at Sanger</td><td>2245STDY5775824</td></tr>
+	<tr><td class="blue strong">PUBLIC NAME</td><td>Sample name to be publically associated with data used to associate sequence data with metadata</td><td>ZA_GPS_SP605</td></tr>
+	<tr><td class="blue strong">LANE ID</td><td>Sequencing data ID</td><td>12837_5#16</td></tr>
+	<tr><td class="blue strong">CONCENTRATION</td><td>Measured at Sanger using pico green</td><td>148.23</td></tr>
+	<tr><td class="blue strong">MEASURED VOLUME</td><td>Measured at Sanger</td><td>47.21</td></tr>
+	<tr><td class="blue strong">TOTAL DNA</td><td>Based on Sanger measured concentration and volume</td><td>6997.94</td></tr>
+	<tr><td class="blue strong">Q20 YIELD FORWARD READ</td><td>Forward read yield above quality score of Q20</td><td>342864</td></tr>
+	<tr><td class="blue strong">Q20 YIELD REVERSE READ</td><td>Reverse read yield above quality score of Q20</td><td>335495</td></tr>
+	<tr><td class="blue strong">TOTAL YIELD</td><td>Total sequencing yield</td><td>678359</td></tr>
+	<tr><td class="blue strong">CREATED</td><td>Date sample assigned sample ID</td><td>31/03/2014 15:15</td></tr>
+	<tr><td class="blue strong">ERS</td><td>ENA (http://www.ebi.ac.uk/ena) sample specific accession number</td><td>ERS428957</td></tr>
+	<tr><td class="blue strong">ERR</td><td>ENA (http://www.ebi.ac.uk/ena) run and sample specific accession number</td><td>ERR570417</td></tr>
+	<tr><td class="blue strong">REFERENCE</td><td>Reference used for qualtity control mapping</td><td>Streptococcus_pneumoniae_ATCC_700669_v1</td></tr>
+	<tr><td class="blue strong">MAPPED PERC</td><td>Percentage of reads mapped to reference</td><td>95.9</td></tr>
+	<tr><td class="blue strong">DEPTH OF COVERAGE</td><td>Average number of reads covering any one base</td><td>302.5</td></tr>
+	<tr><td class="blue strong">DEPTH OF COVERAGE SD</td><td>Standard deviation from the average number of reads covering any one base</td><td>114.55</td></tr>
+	<tr><td class="blue strong">TOTAL LENGTH</td><td>Combined number of bases of all contigs in assembly representing length of genome expected size for pneumoccci 1.9-2.2Mb</td><td>2062995</td></tr>
+	<tr><td class="blue strong">NO CONTIGS</td><td>Number of contigs (continuous DNA sequences) in assembly. QC cut off of 500 contigs per assembly </td><td>33</td></tr>
+	<tr><td class="blue strong">N50</td><td>N50 is a statistical measure of a set of sequences (i.e. contigs). Given a set of sequences of varying lengths, the N50 length is defined as the length N for which 50% of all bases in the sequences are in a sequence of length L < N.</td><td>139893</td></tr>
+	<tr><td class="blue strong">NPG QC</td><td></td><td>pass</td></tr>
+	<tr><td class="blue strong">MANUAL QC</td><td></td><td>pending</td></tr>
+	<tr><td class="blue strong">DECISION</td><td>Post QC decision coded for in the database as Pass =1, Fail =0, Pending =-1 </td><td>1</td></tr>
+	<tr><td class="blue strong">COMMENTS</td><td>Post QC comments on decision or additional information</td></tr>
+	<tr><td class="blue strong">IN SILICO ST</td><td>MLST produced from genome data</td><td>411</td></tr>
+	<tr><td class="blue strong">IN SILICO SEROTYPE</td><td>Serotype deduced from genome data</td><td>15B</td></tr>
+	<tr><td class="blue strong">SAMPLE OUTCOME</td><td>Collates decision of sequencing replicates for a single sample to determine overall outcome for sample </td><td>Sample completed</td></tr>
+	<tr><td class="blue strong">UPDATED ON</td><td>Data last edited in database</td><td>29/10/2014 16:03</td></tr>
+	<tr><td class="blue strong">SAMPLE ID</td><td>Sample ID provided with metadata</td><td>7678</td></tr>
+	<tr><td class="blue strong">STUDY NAME</td><td>Name of study that orginally collected isolate</td><td>GERMS-SA</td></tr>
+	<tr><td class="blue strong">SELECTION RANDOM</td><td>Isolation selection random</td><td>Yes</td></tr>
+	<tr><td class="blue strong">COUNTRY</td><td>Country of isolation</td><td>South Africa</td></tr>
+	<tr><td class="blue strong">REGION</td><td>Region of isolation</td><td>Western Cape</td></tr>
+	<tr><td class="blue strong">CITY</td><td>City of isolation</td></tr>
+	<tr><td class="blue strong">FACILITY COLLECTED</td><td>Name of hospital, clinic etc where the strain was isolated</td></tr>
+	<tr><td class="blue strong">INSTITUTION</td><td>Institution submitting isolate for sequencing</td><td>NICD</td></tr>
+	<tr><td class="blue strong">COL MONTH</td><td>Month of collection</td><td>JUL</td></tr>
+	<tr><td class="blue strong">COL YEAR</td><td>Year of collection</td><td>2006</td></tr>
+	<tr><td class="blue strong">GENDER</td><td>Gender</td><td>M</td></tr>
+	<tr><td class="blue strong">AGE YEAR</td><td>Age in years</td><td>53</td></tr>
+	<tr><td class="blue strong">AGE MONTH</td><td>Age in months if less than 1 year</td></tr>
+	<tr><td class="blue strong">AGE DAY</td><td>Age in days if less than 1 month</td></tr>
+	<tr><td class="blue strong">CLINICAL MANIFEST</td><td>Clinical manifestation</td></tr>
+	<tr><td class="blue strong">SOURCE</td><td>NP swab, blood, CSF, other</td><td>Blood</td></tr>
+	<tr><td class="blue strong">HIV STATUS</td><td>HIV status</td></tr>
+	<tr><td class="blue strong">CONDITIONS</td><td>Underlying conditions</td></tr>
+	<tr><td class="blue strong">PHENO SEROTYPE METHOD</td><td>Quellung; Latex agglutination</td><td>Quellung</td></tr>
+	<tr><td class="blue strong">PHENO SEROTYPE</td><td>Serotype</td><td>15B</td></tr>
+	<tr><td class="blue strong">SEQ TYPE</td><td>MLST sequence type</td></tr>
+	<tr><td class="blue strong">AROE</td><td>AroE allele number</td></tr>
+	<tr><td class="blue strong">GDH</td><td>Gdh allele number</td></tr>
+	<tr><td class="blue strong">GKI</td><td>Gki allele number</td></tr>
+	<tr><td class="blue strong">RECP</td><td>RecP allele number</td></tr>
+	<tr><td class="blue strong">SPI</td><td>Spi allele number</td></tr>
+	<tr><td class="blue strong">XPT</td><td>Xpt allele number </td></tr>
+	<tr><td class="blue strong">DDL</td><td>Ddl alllele number</td></tr>
+	<tr><td class="blue strong">AST PENICILLIN </td><td>Method for determining resistance level</td></tr>
+	<tr><td class="blue strong">PENICILLIN</td><td>Resistance level</td></tr>
+	<tr><td class="blue strong">AST AMOXICILLIN</td><td>Method for determining resistance level</td></tr>
+	<tr><td class="blue strong">AMOXICILLIN</td><td>Resistance level</td></tr>
+	<tr><td class="blue strong">AST CEFOTAXIME</td><td>Method for determining resistance level</td></tr>
+	<tr><td class="blue strong">CEFOTAXIME</td><td>Resistance level</td></tr>
+	<tr><td class="blue strong">AST CEFTRIAXONE</td><td>Method for determining resistance level</td></tr>
+	<tr><td class="blue strong">CEFTRIAXONE</td><td>Resistance level</td></tr>
+	<tr><td class="blue strong">AST CEFUROXIME</td><td>Method for determining resistance level</td></tr>
+	<tr><td class="blue strong">CEFUROXIME</td><td>Resistance level</td></tr>
+	<tr><td class="blue strong">AST MEROPENEM</td><td>Method for determining resistance level</td></tr>
+	<tr><td class="blue strong">MEROPENEM</td><td>Resistance level</td></tr>
+	<tr><td class="blue strong">AST ERYTHROMYCIN</td><td>Method for determining resistance level</td></tr>
+	<tr><td class="blue strong">ERYTHROMYCIN</td><td>Resistance level</td></tr>
+	<tr><td class="blue strong">AST CLINDAMYCIN</td><td>Method for determining resistance level</td></tr>
+	<tr><td class="blue strong">CLINDAMYCIN</td><td>Resistance level</td></tr>
+	<tr><td class="blue strong">AST TRIM SULFA</td><td>Method for determining resistance level</td><td>E_Test</td></tr>
+	<tr><td class="blue strong">TRIM SULFA</td><td>Resistance level</td><td>0.5</td></tr>
+	<tr><td class="blue strong">AST VANCOMYCIN</td><td>Method for determining resistance level</td></tr>
+	<tr><td class="blue strong">VANCOMYCIN</td><td>Resistance level</td></tr>
+	<tr><td class="blue strong">AST LINEZOLID</td><td>Method for determining resistance level</td></tr>
+	<tr><td class="blue strong">LINEZOLID</td><td>Resistance level</td></tr>
+	<tr><td class="blue strong">AST CIPROFLOXACIN</td><td>Method for determining resistance level</td></tr>
+	<tr><td class="blue strong">CIPROFLOXACIN</td><td>Resistance level</td></tr>
+	<tr><td class="blue strong">AST CHLORAMPHENICOL</td><td>Method for determining resistance level</td></tr>
+	<tr><td class="blue strong">CHLORAMPHENICOL</td><td>Resistance level</td></tr>
+	<tr><td class="blue strong">AST TETRACYCLINE</td><td>Method for determining resistance level</td></tr>
+	<tr><td class="blue strong">TETRACYCLINE</td><td>Resistance level</td></tr>
+	<tr><td class="blue strong">AST LEVOFLOXACIN</td><td>Method for determining resistance level</td></tr>
+	<tr><td class="blue strong">LEVOFLOXACIN</td><td>Resistance level</td></tr>
+	<tr><td class="blue strong">AST SYNERCID</td><td>Method for determining resistance level</td></tr>
+	<tr><td class="blue strong">SYNERCID</td><td>Resistance level</td></tr>
+	<tr><td class="blue strong">AST RIFAMPIN</td><td>Method for determining resistance level</td><td>E_Test</td></tr>
+	<tr><td class="blue strong">RIFAMPIN</td><td>Resistance level</td><td>1</td></tr>
+	<tr><td class="blue strong">COMMENTS</td><td>Metadata comments</td></tr>
+</table>

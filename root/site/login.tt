@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>GPS Data Viewer - Login </title>
+    <link rel="stylesheet" type="text/css" href="[% c.request.base %]/static/css/login.css">
+    <link rel="shortcut icon" href="[% c.request.base %]/static/images/gps.ico">
+
+  </head>
+  <body>
+    <div id="loginform">
+      <div id="logo"><img src="[% c.request.base %]/static/images/gps_logo.png"></div>
+      <div id="mainlogin">
+        <h1>GPS Data Viewer</h1>
+        <form method="post" action="[% c.uri_for('/login') %]">
+          <input type="text" name="username" placeholder="username" value="" required>
+          <input type="password" name="password" placeholder="password" value="" required>
+          <button type="submit" class="circle">Login</button>
+        </form>
+        <div id="note"><br>
+          Password - 
+          <a href="[% c.request.base %]/changepassword">Change </a> |
+          <a href="mailto:[% c.config.site_admin_email %]?Subject=GPS Data Viewer - Forgot Password">Forgot</a> |  
+          <a href="mailto:[% c.config.site_admin_email %]?Subject=GPS Data Viewer - Help"> Help </a>
+        </div>
+        <div class="msg">
+          [% IF error_msg %]
+            [% error_msg %]
+            <br>
+          [% END %]
+        </div>
+      </div>
+    </div>
+    <footer>
+      <a target="_blank" href="http://www.sanger.ac.uk/legal/cookiespolicy.html">Cookies</a> | 
+      <a target="_blank" href="http://www.sanger.ac.uk/legal/"> Terms and conditions </a> | 
+      &copy; @ 2014, <a target="_blank" href="http://www.sanger.ac.uk"> Wellcome Trust Sanger Institute </a>
+    </footer>
+  </body>
+</html>

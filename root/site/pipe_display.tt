@@ -1,0 +1,263 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <link rel="stylesheet" type="text/css" href="[% c.request.base %]/static/js/jquery-easyui-1.3.5/themes/bootstrap/easyui.css">
+  <link rel="stylesheet" type="text/css" href="[% c.request.base %]/static/js/jquery-easyui-1.3.5/themes/icon.css">
+  <link rel="stylesheet" type="text/css" href="[% c.request.base %]/static/css/style.css">
+  <link rel="stylesheet" type="text/css" href="[% c.request.base %]/static/css/colorbox.css">
+  <link rel="shortcut icon" href="[% c.request.base %]/static/images/gps.ico">
+  <link href="http://fonts.googleapis.com/css?family=Roboto:400,300,100" rel="stylesheet">
+  <title>GPS Data Viewer</title>
+</head>
+<body>
+  <div id="svg"></div>
+  <!-- Form for ST buld update -->
+
+  <!-- Main container block -->
+  <div id="container">
+    <div class="topbanner">
+      <div class="welcome">
+        [% IF c.user_exists %]
+            Hi [% c.user.gpu_name %]
+            <a id="logout" href="[% c.uri_for('/logout') %]">Logout</a>
+        [% END %]
+      </div>
+      <div class="logo">
+        <img src="[% c.request.base %]/static/images/gps.ico">
+        <h2> GPS Data Viewer</h2>
+      </div>
+      <div class="clear"></div>
+    </div>
+    <div>
+      <div id="block_screen">
+        <img src="[% c.request.base %]/static/images/gps_logo_small.png">
+        <img class="ani" src="[% c.request.base %]/static/images/gps_ani_over.png">
+        <div class="block_screen_inner">Loading...</div>
+      </div>
+    </div>
+    <div id="layout" class="easyui-layout" data-options="fit:true" style="width:100%;height:550px;">
+
+      <div data-options="region:'west',title:'Columns',split:true,collapsed:true" style="z-index:5;width:200px;">
+        <div style="padding:20px 10px 20px 15px">
+          <button class="showAll button">ShowAll</button>
+          <button class="hideAll button">HideAll</button>
+        </div>
+        <div id="drag" class="draggable"></div>
+      </div>
+
+      <div class="drop-div" data-options="region:'center',title:'Grid View'" style="z-index:1;padding:5px;background:#eee;">
+        <div id="dg"></div>
+
+
+        [% IF c.user.gpu_role == "admin" %]
+          <div id="tb">
+            <a href="javascript:void(0);" id="show_add_column_pane_button" class="easyui-linkbutton" iconCls="icon-eye" plain="true" title="Add or remove columns">View Columns</a>
+            <a href="javascript:void(0);" id="show_search_pane_button" class="easyui-linkbutton" iconCls="icon-search" plain="true" title="Search datagrid">Search</a>
+            <a href="javascript:void(0);" onClick="javascript:$('#dg').edatagrid('cancelRow')" class="easyui-linkbutton" iconCls="icon-no" plain="true" title="Cancel editing">Cancel</a>
+            <a href="javascript:void(0);" onClick="saveData()" class="easyui-linkbutton" iconCls="icon-save" plain="true" title="Save to database">Save</a>
+            <a href="javascript:void(0);" onClick="javascript:location.reload();" class="easyui-linkbutton" iconCls="icon-reload" plain="true" title="Reload Page">Reload Page</a>
+            <a href="javascript:void(0);" class="easyui-menubutton" data-options="menu:'#tools_menu',iconCls:'icon-wand'" plain="true" title="Utility Tools">Tools</a>
+            <a href="javascript:void(0);" class="easyui-menubutton" data-options="menu:'#download_menu',iconCls:'icon-download'" plain="true" title="Download Options">Download</a>
+            <a href="javascript:void(0);" class="easyui-linkbutton .dv_help" onClick="showHelp()" iconCls="icon-help" plain="true" title="Help">Help</a>
+            <div class="update_st_form_container hidden">
+              <div class="update_st_form">
+                <form action='[% c.request.base %]/updateST/bulk' enctype="multipart/form-data" method="post" class="st_update_form" >
+                  <ul>
+                    <div class="right"><span class="closebutton" onClick="javascript:$('.update_st_form_container').slideUp();">x</span></div>
+                    <p class="small bold">Select file to upload </p>
+                    <li><input type="file" name="st_update_file" id="st_update_file">.xlsx file with lane_id and st data</li>
+                    <hr>
+                    <p class="small bold">Select type </p>
+                    <li><input type="radio" name="st_update_type" value="st">ST</li>
+                    <li><input type="radio" name="st_update_type" value="stype">Serotype</li>
+                    <hr>
+                    <center><input class="button" type="submit" name="submit" value="Update"></center>
+                  </ul>
+                </form>
+              </div>
+            </div>
+          </div>
+
+        <div id="tools_menu" style="width:150px;">
+          <div onClick="updataDecision(1)" iconCls="icon-ok" plain="true" title="Include selected">Include</div>
+          <div onClick="updataDecision(0)" iconCls="icon-minus" plain="true" title="Exclude selected">Exclude</div>
+          <div onClick="javascript:showUpdateSTWindow()" iconCls="icon-edit" plain="true" title="Update ST">Update ST/Serotype</div>
+        </div>
+
+        [% ELSE %]
+          <div id="general_tb">
+            <a href="javascript:void(0);" id="show_add_column_pane_button" class="easyui-linkbutton" iconCls="icon-eye" plain="true" title="Add or remove columns">View Columns</a>
+            <a href="javascript:void(0);" id="show_search_pane_button" class="easyui-linkbutton" iconCls="icon-search" plain="true" title="Search datagrid">Search</a>
+            <a href="javascript:void(0);" onClick="javascript:location.reload();" class="easyui-linkbutton" iconCls="icon-reload" plain="true" title="Reload Page">Reload Page</a>
+            <a href="javascript:void(0);" class="easyui-menubutton" data-options="menu:'#download_menu',iconCls:'icon-download'" plain="true" title="Download Options">Download</a>
+            <a href="javascript:void(0);" class="easyui-linkbutton .dv_help" onClick="showHelp()" iconCls="icon-help" plain="true" title="Help">Help</a>
+          </div>
+        [% END %]
+
+        <div id="download_menu" style="width:180px;">
+          <div data-options="iconCls:'icon-csv'" onClick="exportData('csv')">
+            Download CSV
+            <span onmouseover="showColorbox({str:$('#csv_help').html()});" class="icon-info icon-help-menu-right"></span>
+          </div>
+          <div data-options="iconCls:'icon-csv'" onClick="exportData('xml')">
+            Download XML
+            <span onmouseover="showColorbox({str:$('#xml_help').html()});" class="icon-info icon-help-menu-right"></span>
+          </div>
+          <div onClick="javascript:downloadFastq();" id="fastqlink" iconCls="icon-zip">
+            Download Fastq
+            <span onmouseover="showColorbox({str:$('#fastq_help').html()});" class="icon-info icon-help-menu-right"></span>
+          </div>
+          <div onClick="javascript:downloadZipFiles('assemblies');" id="assemblylink" iconCls="icon-zip">
+            Download Assemblies
+            <span onmouseover="showColorbox({str:$('#ass_help').html()});" class="icon-info icon-help-menu-right"></span>
+          </div>
+          <div onClick="javascript:downloadZipFiles('annotations');" id="annotationlink" iconCls="icon-zip">
+            Download Annotations
+            <span onmouseover="showColorbox({str:$('#anno_help').html()});" class="icon-info icon-help-menu-right"></span>
+          </div>
+        </div>
+
+      </div>
+
+      <div data-options="region:'east',title:'Search',split:true,collapsed:true" style="width:350px;">
+        <!--<div class="linkhead" onclick="toggle(this);">Search</div>-->
+        <form method="POST" class="niceform" id="niceform" onSubmit="return showGrid('search');">
+          <div style="padding:10px 10px 5px 0px;">
+            <button type="submit" class='button searchbutton' value="Search">Search</button>
+            <button type='reset' class='button reloadbutton' value="Clear Form">Clear Form</button>
+            <img class="addfield" src="[% c.request.base %]/static/images/add.png">
+          </div>
+          <fieldset id="niceform_fieldset">
+              <dl>
+                <dt>
+                  <dd>
+                    <select size="1" style="width: 150px" name="columns" id="column">
+                    </select>
+                    <select size="1" style="width: 105px" name="eq" id="eq">
+                          <option value="in" selected="selected">IN</option> 
+                          <option value="not in">NOT IN</option> 
+                          <option value="like">LIKE</option> 
+                          <option value="not like">NOT LIKE</option> 
+                          <option value="REGEXP">REGEXP</option> 
+                          <option value="is null">IS NULL</option>\
+                          <option value="is not null">IS NOT NULL</option>\
+                          <option value="=">=</option> 
+                          <option value="!=">!=</option>
+                          <option value="<"><</option> 
+                          <option value="<="><=</option>
+                          <option value=">">></option> 
+                          <option value=">=">>=</option>
+                          <option value="groupby">DUPLICATES > </option>
+                    </select><br>
+                    <textarea name="search_str" id="search_str" rows="3" cols="35" placeholder="Paste your input here... Multiple entries should be separated by a newline character"></textarea>
+                 </dd>
+               </dt>
+              </dl>
+          </fieldset>
+        </form>
+      </div>
+      <div data-options="region:'south',split:false,collapsed:false" >
+        <footer class="anilink">
+          <a target="_blank" href="http://www.sanger.ac.uk/legal/cookiespolicy.html">Cookies</a> | 
+          <a target="_blank" href="http://www.sanger.ac.uk/legal/"> Terms and conditions </a> | 
+          &copy; @ 2014, <a target="_blank" href="http://www.sanger.ac.uk"> Wellcome Trust Sanger Institute </a>
+        </footer>
+      </div>
+    </div>
+
+    <div id="msg"></div>
+
+
+    <div class="help_container">
+      <div class="icon-help colorbox_head center icon-padding-right">Help</div>
+      <div class="colorbox_display">
+        <div id="report_issue" class="center">
+          <p> Please report any issues or bugs to <a href="mailto:gps@pneumogen.net?subject=GPS Dataviewer">gps@pneumogen.net</a></p>
+        </div>
+        <div class="video_div" onclick="showHelpVideo()">
+          Watch tutorial here <img src="[% c.request.base %]/static/images/icon-video.gif">
+        </div>
+        <div id="view_column_help">
+          <h4 class="blue">View Columns</h4><hr>
+          <p>
+            Use this button to open the left pane where the column options are listed. Click on the column to show / hide it in the dataviewer grid
+          </p>
+        </div>
+        <div id="search_column_help">
+          <h4 class="blue">Search</h4><hr>
+          <p>
+            The search button on the tool bar will open the search form for you. Use this to search the database.
+            Below are the steps to perform a search.
+            <ul>
+              <li>Select search column from the drop down list <select size="1" style="width: 150px" name="columns" id="help_select_column"></select> <a onclick="showColHeaderHelp('col');">Click to know more</a>
+                <div class="help_select_column_content">
+                </div>
+              </li>
+              <li>Select search type <select size="1" style="width: 105px" id="help_eq"></select> <a onclick="showColHeaderHelp('type');">Click to know more</a>
+              </li>
+              <li>Type or paste your search identifier in the box provided. <br><em>A list of search identifiers must be entered in separate lines</em></li>
+              <li>Click Search button</li>
+            </ul>
+          </p>
+        </div>
+        <div id="csv_help">
+          <h4 class="blue">CSV Download</h4><hr>
+          <p>
+            Data can be downloaded as CSV (comma separated values) files. These are saved as .csv format and could be opened in any spreadsheet readers like Excel 
+          </p>
+        </div>
+        <div id="xml_help">
+          <h4 class="blue">XML Download</h4><hr>
+          <p>
+            Data can be downloaded as as XML files. These are saved as .xls format and could be opened in any spreadsheet readers like Excel. XML file sizes are larger than CSVs.
+          </p>
+        </div>
+        <div id="fastq_help">
+          <h4 class="blue">Fastq Download</h4><hr>
+          <p>
+            Fastq's are the raw sequence data. There is one file each for the forward (_1) and reverse reads (_2) per sample.
+            All fastq data is hosted at <a href="http://www.ebi.ac.uk/ena" target="_blank">EBI-ENA</a>
+          </p>
+          <p>
+            You can download a single file by clicking on the URLs. Alternatively you can download a text file (e.g. fastq_urls.txt) containing the URLs which can be used as an input for a bulk download via Unix with the command <code>wget -i fastq_urls.txt</code>
+          </p>
+          <p>
+            ENA accession numbers are provided within the database for each sample to link the sequencing data with the strain and metadata
+          </p>
+        </div>
+        <div id="ass_help">
+          <h4 class="blue">Assembly Download</h4><hr>
+          <p>
+            Assemblies were created using the Sanger Institute automated pipeline that utilises Velvet (Zerbino DR, Birney E, 2008) and <a href="https://github.com/Victorian-Bioinformatics-Consortium/VelvetOptimiser" target="_blank">Velvet optimiser</a>
+          </p>
+        </div>
+        <div id="anno_help">
+          <h4 class="blue">Annotation Download</h4><hr>
+          <p>
+            Automated annotation was performed using the Sanger Institute <a href="https://github.com/sanger-pathogens/Bio-AutomatedAnnotation" target="_blank">bacterial annotation pipeline</a> utilising Prokka (T.Seemann, 2014)
+          </p>
+        </div>
+      </div>
+    </div>
+
+<!--
+      <span class="warn"> <img src="[% c.request.base %]/static/images/bug.jpeg" ><br><br><br><br>" Hi [% c.user.name %], Jyo has modified the LIKE feature for you <br> ...... Just dial 999 if you find any bug ....... <br>"  </span>
+-->
+  <script type="text/javascript" src="http://code.jquery.com/jquery-latest.min.js"></script>
+  <script type="text/javascript" src="[% c.request.base %]/static/js/jquery-easyui-1.3.5/jquery.easyui.min.js"></script>
+  <script type="text/javascript" src="[% c.request.base %]/static/js/jquery.bootstrap-growl.js"></script>
+  <script src="http://netdna.bootstrapcdn.com/bootstrap/2.3.2/js/bootstrap.min.js"></script> 
+<!--  <script type="text/javascript" src="[% c.request.base %]/static/js/jquery-easyui-1.3.5/plugins/datagrid-detailview.js"></script> -->
+  <script type="text/javascript" src="[% c.request.base %]/static/js/jquery-easyui-1.3.5/plugins/jquery.edatagrid.js"></script>
+  <script type="text/javascript" src="[% c.request.base %]/static/js/jquery.colorbox-min.js"></script>
+  <script src="http://malsup.github.com/jquery.form.js"></script>
+  <script type="text/javascript" src="[% c.request.base %]/static/js/gps.js"></script>
+  <script type="text/javascript" src="[% c.request.base %]/static/js/FileSaver.min.js"></script>
+
+  <script type="text/javascript">
+
+    var base_request_url = "[% c.request.base %]", user_role = "[% c.user.gpu_role %]";if(user_role == undefined)user_role = "";var gpsdb_column_2d_array = [% gpsdb_column_2d_array %], user_exists = [% c.user_exists %];
+</script>
+  </body>
+</html>

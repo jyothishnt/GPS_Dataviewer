@@ -1,0 +1,213 @@
+      *
+      {
+        margin:0px;
+        padding:0px;
+      }
+        
+      html, body{
+        background:#333;
+        font-family:verdana;
+      } 
+
+      footer {
+        bottom: 0px; 
+        position: absolute;
+        text-align: center;
+        width: 100%;
+        font-size: 12px;
+        color: #88887a;
+      }                                      
+
+      #loginform
+      {
+        width:550px;
+        height: 300px;
+        padding: 25px;
+        text-align: center;
+        margin: auto;
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        right: 0;
+      }
+      .err {
+        color: white;
+      }
+      .msg {
+          text-align: center;
+          margin: 15px 0px;
+          font-size: 13px;
+          color: #45bcff;
+      }
+      .button {
+        -moz-box-shadow:inset 0px 0px 0px -50px #97c4fe;
+        -webkit-box-shadow:inset 0px 0px 0px -50px #97c4fe;
+        box-shadow:inset 0px 0px 0px -50px #97c4fe;
+        text-indent:0px;
+        display:inline-block;
+        font-size:12px;
+        font-weight:normal;
+        font-style:normal;
+        height:30px;
+        line-height:27px;
+        padding: 0px 10px;
+        text-decoration:none;
+        text-align:center;
+        text-shadow:0px 0px 0px #2169b0;
+        opacity:0.8;filter:alpha(opacity=80);
+      }
+
+      .button:hover {
+        cursor:pointer;
+        opacity:1;filter:alpha(opacity=100);
+      }.button:active {
+        position:relative;
+        top:1px;
+      }
+      input
+      {
+          display:block;
+          margin:0px auto 15px;
+          border-radius:5px;
+          background: #333333;
+          width:85%;
+          padding:12px 20px 12px 10px;
+          border:none;
+          color:#fff;                       
+          box-shadow:inset 0px 1px 5px #272727;
+          font-size:0.8em;
+          -webkit-transition:0.5s ease;
+          -moz-transition:0.5s ease;
+          -o-transition:0.5s ease;
+          -ms-transition:0.5s ease;
+          transition:0.5s ease; 
+      }
+
+      input:focus
+      {
+        -webkit-transition:0.5s ease;
+        -moz-transition:0.5s ease;
+        -o-transition:0.5s ease;
+        -ms-transition:0.5s ease;
+        transition:0.5s ease;  
+        box-shadow: 0px 0px 1px 2px #45bcff;
+      }
+
+      button.circle
+      {
+        background: #222526;
+        border-radius:50%;
+        border:4px solid #dbdbdb;
+        font-size:0.6em;
+        letter-spacing: 0.2em;
+        color:#fff;
+        font-weight:bold;
+        cursor:pointer;
+        width:60px;
+        height:60px;
+        position:absolute;
+        right: -30px;
+        top: 70px;
+        text-align:center;
+      }
+
+      button.circle:hover
+      {
+        background:#222526;
+        border-color:#3289ff;
+        -webkit-transition:0.5s ease;
+        -moz-transition:0.5s ease;
+        -o-transition:0.5s ease;
+        -ms-transition:0.5s ease;
+        transition:0.5s ease;
+      }
+       
+      *:focus{outline:none;}
+      ::-webkit-input-placeholder {
+        color:#929999;
+      }
+
+      :-moz-placeholder { /* Firefox 18- */
+        color:#929999; 
+      }
+
+      ::-moz-placeholder {  /* Firefox 19+ */
+        color:#929999;  
+      }
+
+      :-ms-input-placeholder {  
+        color:#929999; 
+      }
+
+      h1
+      {
+        text-align:center;
+        color:#fff;
+        font-size:15px;
+        font-weight: normal;
+        padding:12px 0px;
+        letter-spacing: 2px;
+      }
+
+      #note
+      {
+        color:#88887a;
+        font-size: 0.7em;
+        text-align:right;
+      }
+
+      #logo
+      {
+        text-align:center;
+        float:left;
+        background-size: 100%;
+        padding:0px 10px 10px 0px;
+        width:170px;
+        height:135px; 
+        border-radius:3px;
+        cursor:pointer;
+        margin-right:20px;
+        -webkit-transition:0.5s ease;
+        -moz-transition:0.5s ease;
+        -o-transition:0.5s ease;
+        -ms-transition:0.5s ease;
+        transition:0.5s ease;
+      }
+      .passwd {
+        line-height: 300px;
+      }
+      #logo img {
+        width: 110%;
+        vertical-align: middle;
+      }
+      a
+      {
+        color:#88887a;
+        text-decoration:none;
+        -webkit-transition:0.5s ease;
+        -moz-transition:0.5s ease;
+        -o-transition:0.5s ease;
+        -ms-transition:0.5s ease;
+        transition:0.5s ease;
+      }
+
+      a:hover
+      {
+        color:#fff;
+        -webkit-transition:0.5s ease;
+        -moz-transition:0.5s ease;
+        -o-transition:0.5s ease;
+        -ms-transition:0.5s ease;
+        transition:0.5s ease;
+      }
+
+      #mainlogin
+      {
+        float:left;
+        width:250px;
+        padding:10px 15px 5px 15px;
+        position:relative;
+        background:#555555;
+        border-radius:3px;
+      }

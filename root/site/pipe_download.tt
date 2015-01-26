@@ -1,0 +1,11 @@
+[% FOREACH col_head IN datamap.col -%]
+    [% col_head %]
+
+[% END %]
+[% FOREACH row IN dataarr -%]
+  [% FOREACH val IN row -%]
+    [% val %]
+  [% END %]
+  
+[% END %]
+ 

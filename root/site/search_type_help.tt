@@ -1,0 +1,110 @@
+<style type="text/css">
+    table.help_eq_content {
+        font-size: 12px;
+        border-collapse: collapse;
+    }
+    table.help_eq_content th {
+        min-width: 100px;
+        border-collapse:collapse;
+        border:1px solid #d6d6d6;
+    }
+    table.help_eq_content td, table.help_eq_content tr{
+        border-collapse:collapse;
+        border:1px solid #d6d6d6;
+        padding: 5px;
+    }
+
+    table.help_eq_content b{
+      color: #007fc5;
+      font-style: bold;
+    }
+
+table.help_patterns{
+   border:1px solid #d6d6d6;
+   width:100%;
+   border-collapse:collapse;
+   vertical-align:top;
+   margin-top:8px;
+   margin-bottom:8px;
+   background-color:#f7f7f7;
+}
+table.help_patterns td {
+   border-collapse:collapse;
+   border:1px solid #d6d6d6;
+   padding:5px;
+}
+table.help_patterns th{
+   border-collapse:collapse;
+   border:1px solid #d6d6d6;
+   background-color:#eee;
+   padding:5px;
+   text-align:left;
+}
+</style>
+<script type="text/javascript">
+    $("table.help_patterns").hide();
+</script>
+<table class="help_eq_content">
+    <thead class="colorbox_head">
+        <th>Search Type</th>
+        <th>Description</th>
+    </thead>
+    <tr><td class="blue strong center">IN</td> <td> Do an <b> exact match </b> on your list of search terms. Search terms should be separated by a new line. </td></tr>
+    <tr><td class="blue strong center">NOT IN</td> <td> Display results that <b> does not exactly match </b> your list of search terms.</td></tr>
+    <tr><td class="blue strong center">LIKE</td> <td> Display results that <b>starts with</b> your list of search terms. Search terms should be separated by a new line. </td></tr>
+    <tr><td class="blue strong center">NOT LIKE</td> <td> Display results that <b>does not start with</b> your list of search terms. Search terms should be separated by a new line. </td></tr>
+    <tr><td class="blue strong center">REGEXP</td> 
+        <td>
+            Match your list of <b>search patterns</b>. 
+            E.g. 
+            <br> <code>^9789</code> (Lane ID) return rows where lanes starting with 9789
+            <br> <code>.*100$</code> (Sanger ID) return rows where Sanger ID ending with 100
+            <br> <code>^9879.*|^9950.*</code> (Lane ID) return rows where lanes that starts with 9879 or 9950
+            <br> <a class="more_pattern blue" onClick="javascript:$('table.help_patterns').slideToggle('slow');">Click here to see the list of acceptable patterns</a>
+            <table class="help_patterns">
+                <tr>
+                <th>Pattern</th><th>What the pattern matches</th>
+                </tr>
+                <tr>
+                <td><code>^</code></td><td>Beginning of string</td>
+                </tr>
+                <tr>
+                <td><code>$</code></td><td>End of string</td>
+                </tr>
+                <tr>
+                <td><code>.</code></td><td>Any single character</td>
+                </tr>
+                <tr>
+                <td><code>[...]</code></td><td>Any character listed between the square brackets</td>
+                </tr>
+                <tr>
+                <td><code>[^...]</code></td><td>Any character not listed between the square brackets</td>
+                </tr>
+                <tr>
+                <td><code>p1|p2|p3</code></td><td>Alternation; matches any of the patterns p1, p2, or p3</td>
+                </tr>
+                <tr>
+                <td><code>*</code></td><td>Zero or more instances of preceding element</td>
+                </tr>
+                <tr>
+                <td><code>+</code></td><td>One or more instances of preceding element</td>
+                </tr>
+                <tr>
+                <td><code>{n}</code></td><td>n instances of preceding element</td>
+                </tr>
+                <tr>
+                <td><code>{m,n}</code></td><td>m through n instances of preceding element</td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+    <tr><td class="blue strong center">IS NULL</td> <td> Return rows where the data for selected column <b>is empty</b> </td></tr>
+    <tr><td class="blue strong center">IS NOT NULL</td> <td> Return rows where the data for selected column <b>is not empty</b>  </td></tr>
+    <tr><td class="blue strong center">=</td> <td> <b>Numerical search</b> that does an exact match (Only a single numerical search term is allowed) </td></tr>
+    <tr><td class="blue strong center">!=</td> <td> <b>Not equal to</b> operator! Compares the search term with the values in the selected column (Only a single numerical search term is allowed) </td></tr>
+    <tr><td class="blue strong center"><</td> <td> <b>Less than</b> operator! Compares the search term with the values in the selected column (Only a single numerical search term is allowed) </td></tr>
+    <tr><td class="blue strong center"><=</td> <td> <b>Less than or equal to</b> operator! Compares the search term with the values in the selected column (Only a single numerical search term is allowed) </td></tr>
+    <tr><td class="blue strong center">></td> <td> <b>Greater than</b> operator! Compares the search term with the values in the selected column (Only a single numerical search term is allowed) </td></tr>
+    <tr><td class="blue strong center">>=</td> <td> <b>Greater than or equal to</b> operator! Compares the search term with the values in the selected column (Only a single numerical search term is allowed) </td></tr>
+    <tr><td class="blue strong center">DUPLICATES > </td> <td> <b>Find Duplicates</b> in a column. E.g. A Public Name search with Duplicates > 1 returns public names which have more than 1 duplicates </td></tr>
+</table>

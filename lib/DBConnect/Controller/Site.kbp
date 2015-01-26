@@ -1,0 +1,1380 @@
+package DBConnect::Controller::Site;
+use Moose;
+use namespace::autoclean;
+use JSON;
+use Try::Tiny;
+use POSIX qw(strftime);
+use Data::Dumper;
+use WWW::Mechanize;
+use Spreadsheet::XLSX;
+use Archive::Zip qw( :ERROR_CODES :CONSTANTS );
+use File::Spec;
+use File::Basename 'basename';
+
+BEGIN { extends 'Catalyst::Controller'; }
+
+
+=head1 NAME
+
+DBConnect::Controller::Site - Catalyst Controller
+
+=head1 DESCRIPTION
+
+Catalyst Controller.
+
+=head1 METHODS
+
+=cut
+
+
+=head2 index
+
+=cut
+
+sub index :Path :Args(0) {
+    my ( $self, $c ) = @_;
+    $c->response->body('Matched DBConnect::Controller::Site in Site.');
+}
+
+# Function that gets called for loading the initial page.
+# This sends db columns as a 2D array to the template
+sub gpsDataDisplayMain :Path('/gps/data/') :Args(0) {
+  my ( $self, $c ) = @_;
+  my @col_arr = ();
+  my $col = ();
+
+  # Get all the columns from the database to populate HTML dropdown in the search form
+  # Pushing columns from sequence scape table
+  my $schema_gss = $c->model('gps::GpsSequenceScape');
+  my @col_arr_gss = $schema_gss->result_source->columns;
+  push(@col_arr, @col_arr_gss);
+  push(@{$col}, [@col_arr]);
+
+  # Pushing columns from gps results table
+  my $schema_gup = $c->model('gps::GpsResult');
+  my @col_arr_gup = $schema_gup->result_source->columns;
+  splice (@col_arr_gup,0,2);
+  push(@col_arr, @col_arr_gup);
+  push(@{$col}, [@col_arr_gup]);
+
+  # Pushing columns from sequence data table
+  my $schema_gsd = $c->model('gps::GpsSequenceData');
+  my @col_arr_gsd = $schema_gsd->result_source->columns;
+  splice (@col_arr_gsd,0,4);
+  splice (@col_arr_gsd,2,1);
+  splice (@col_arr_gsd,6,1);
+  splice (@col_arr_gsd,9,1);
+  push(@col_arr, @col_arr_gsd);
+  push(@{$col}, [@col_arr_gsd]);
+
+  # Pushing columns from metadata table
+  my $schema_gmd = $c->model('gps::GpsMetadata');
+  my @col_arr_gmd = $schema_gmd->result_source->columns;
+  push(@col_arr, @col_arr_gmd);
+  splice (@col_arr_gmd,1,1);
+  push(@{$col}, [@col_arr_gmd]);
+
+  #$c->stash->{search_columns} = to_json(\@col_arr);
+
+  $c->stash->{gpsdb_column_2d_array} = to_json($col);
+  $c->stash->{username} = 'GPS Search';
+  $c->stash->{template} = 'site/pipe_display.tt';
+}
+
+
+
+# Search gps data
+# Fetching sequence data from gps db
+sub searchGPSData :Path('/gps/json/') {
+  my ( $self, $c, @args ) = @_;
+  # Logging
+  my $log_str = '';
+  $log_str .= (defined $c->user->gpu_institution)?$c->user->get('gpu_name'):"GUEST-$c->request->address";
+
+  my $search_data;
+  if($c->request->body_data) {
+    $search_data = $c->request->body_data;
+  }
+  if(defined $search_data->{data}) {
+    $search_data->{data} = decode_json($search_data->{data});
+  }
+  if(defined $search_data->{download_selected}) {
+    $search_data->{download_selected} = decode_json($search_data->{download_selected});
+    # Making search data null as we dont want to deal with search when the user selected 'selected download'
+    $search_data->{data} = (); 
+  }
+
+  # Logging
+  if(!defined $search_data->{data}) {
+    if(defined $search_data->{order}) {
+      $log_str .= '-PageLoad-' . to_json($search_data);  
+    }
+    else {
+      $log_str .= '-PageLoad';
+    }
+    if($args[0] eq 'download') {
+      $log_str .= '-Download';
+    }
+    if($args[0] eq 'download_selected') {
+      $log_str .= '-Download_Selected';
+    }
+  }
+  else {
+    if(scalar @{$search_data->{data}} > 0) {
+      $log_str .= '-Search:'. to_json($search_data);
+    }
+    if($args[0] eq 'download') {
+      $log_str .= '-Download';
+    }
+    if($args[0] eq 'download_selected') {
+      $log_str .= '-Download_Selected';
+    }
+  }
+
+  # If option "Selected Download" then no need to use search conditions. So make it null
+  if($args[0] eq 'download_selected') {
+    $search_data->{data} = ();
+  }
+
+  # Log info
+  $c->log->warn($log_str);
+
+  #creating query
+  my $col_prefix = '';
+  my $search_str;
+  my $search_str_start = 'SELECT * FROM gps_sequence_scape as SC 
+                          LEFT JOIN gps_sequence_data as S
+                              ON SC.gss_lane_id = S.gsd_lane_id
+                          LEFT JOIN gps_results as U 
+                              ON (SC.gss_lane_id = U.grs_lane_id AND SC.gss_sanger_id = U.grs_sanger_id)
+                              OR (SC.gss_lane_id IS NULL AND SC.gss_sanger_id = U.grs_sanger_id)
+                          LEFT JOIN gps_metadata as M 
+                              ON SC.gss_public_name = M.gmd_public_name';
+  my $search_substr = '';
+  if(defined $search_data->{data} && @{$search_data->{data}} > 0) {
+    # Handling GROUPBY first so that we can decide whether to use WHERE or AND later
+    my $groupby_exist = 0;
+    for (my $i=0; $i<scalar @{$search_data->{data}}; $i++) {
+      $col_prefix = getColumnPrefix($search_data->{data}->[$i]->[0]->{columns});
+      if($search_data->{data}->[$i]->[0]->{eq} =~/groupby/) {
+        $search_substr = ' GROUP BY ';
+        $groupby_exist = 1;
+        $search_substr .= "$col_prefix.$search_data->{data}->[$i]->[0]->{columns} ";
+        my $str = $search_data->{data}->[$i]->[0]->{search_str};
+        if ($search_data->{data}->[$i]->[0]->{search_str} eq "") {
+          $str = 0;
+        }
+        # If not digit, then exit.
+        if($str !~/^\d+$/) {
+          my $res = {'err' => 'Input Error', 'errMsg' => "Numeric value expected"};
+          $c->res->body(to_json($res));
+          return;
+        }
+
+        $search_substr .= " HAVING COUNT($col_prefix.$search_data->{data}->[$i]->[0]->{columns}) > $str ";
+        last;
+      }
+    }
+
+    # No need of where clause if groupby exists - 'having' clause is added above
+    if(!$groupby_exist) {
+      $search_substr = ' WHERE ';
+    }
+    
+    # Iterate through each column conditions and create the conditional query
+    for (my $i=0; $i<scalar @{$search_data->{data}}; $i++) {
+      my $data = $search_data->{data}->[$i];
+
+      if($search_data->{data}->[$i]->[0]->{eq} !~/groupby/) { # If not Group by then move forward
+        # If groupby query added above, then append "AND" 
+        if($groupby_exist) {
+          $search_substr .= ' AND ';
+          # Deflagging it so that this is executed only once.
+          $groupby_exist = 0; 
+        }
+
+        # Split and store the post search string into and array
+        my @arr = split(',',$search_data->{data}->[$i]->[0]->{search_str});
+
+        $col_prefix = getColumnPrefix($search_data->{data}->[$i]->[0]->{columns});
+        # Escaping underscores with preceeding backslashes else mysql consideres '_' as 'any character match'
+        $search_substr .= "($col_prefix.$search_data->{data}->[$i]->[0]->{columns} $search_data->{data}->[$i]->[0]->{eq} ";
+        if($search_data->{data}->[$i]->[0]->{eq} =~ /REGEXP/) {
+          if($search_data->{data}->[$i]->[0]->{search_str} eq "") {
+            $search_substr .= '".*")'; # Making the string search null
+          }
+          else {
+            # Creating the search string form comma separated values
+            # Example: WHERE (SC.gss_sanger_id REGEXP "2245STDY5609011|2245STDY5609010")
+            my $search_inp = '"' . join('|',@arr) . '")';
+            $search_substr .= $search_inp;
+          }
+        }
+        elsif($search_data->{data}->[$i]->[0]->{eq} =~ /in/) {
+          my $search_inp = '("' . join('","',@arr) . '"))';
+          $search_substr .= $search_inp;
+        }
+        elsif($search_data->{data}->[$i]->[0]->{eq} =~ /like/) {
+          my $t_str = '';
+          for(my $j=0; $j<=$#arr-1; $j++) {
+            $t_str .= '"'.$arr[$j]."%\" OR $col_prefix.$search_data->{data}->[$i]->[0]->{columns} $search_data->{data}->[$i]->[0]->{eq} ";
+          }
+          $t_str .= '"'.$arr[$#arr].'%"';
+          $search_substr .= $t_str.')';
+        }
+        elsif($search_data->{data}->[$i]->[0]->{eq} =~ /is null/) {
+          $search_substr .= " OR $col_prefix.$search_data->{data}->[$i]->[0]->{columns} <=> '') ";
+        }
+        elsif($search_data->{data}->[$i]->[0]->{eq} =~ /is not null/) {
+          $search_substr .= " AND $col_prefix.$search_data->{data}->[$i]->[0]->{columns} <> '') ";
+        }
+        else {
+          if($search_data->{data}->[$i]->[0]->{search_str} eq "") {
+            $search_substr .= '"")'; # Making the string search null
+          }
+          else {
+            $search_substr .= $search_data->{data}->[$i]->[0]->{search_str} . ") ";
+          }
+        }
+
+        # Check if further search condition exists. If yes, the append 'AND'
+        if(defined $search_data->{data}->[$i+1]) {
+          $search_substr .= ' AND ';
+        }
+      }
+    }
+
+  }
+
+  # Making query string to download selected data
+  my $download_selected_search_substr = "";
+  if($args[0] eq 'download_selected') {
+    # Create search string with sanger_id, lane_id and public name
+    my $arr_sanger = ();
+    foreach my $row (@{$search_data->{download_selected}}) {
+      if($row->{gss_sanger_id}) {
+        push @$arr_sanger, $row->{gss_sanger_id};
+      }
+    }
+    my $str_sanger = '"' . join('","', @$arr_sanger) . '"';
+    # Directly use Where condition as we dont have any search conditions above
+    $download_selected_search_substr = " WHERE SC.gss_sanger_id IN ($str_sanger) ";
+  }
+
+  # Avoid excluded ones from downloading
+  my $download_substr = '';
+  ###### Currently allowing all data to download
+  # if($args[0]=~/download/) {
+  #    $download_substr = " AND U.grs_decision <> 0 ";
+  # }
+
+  # print Dumper $search_substr;
+  ######### $search_substr is used for counting the total
+
+  # Handling site specific data retrieval
+  my $site_search = '';
+  if(defined $c->user->gpu_institution && $c->user->gpu_institution !~ /Sanger/) {
+
+    my @arr = split(';',$c->user->gpu_institution);
+    my $str = join('","', @arr);
+
+    if($download_selected_search_substr ne "" || $search_substr ne "") {
+      $site_search = ' AND M.gmd_institution IN ("' . $str . '")';
+      if($c->user->get('gpu_username') eq "testuser") {
+        $site_search = ' AND M.gmd_study_name = "Global Strain Bank" ';
+      }
+    }
+    else {
+      $site_search = ' WHERE M.gmd_institution IN ("' . $str . '")';
+      if($c->user->get('gpu_username') eq "testuser") {
+        $site_search = ' WHERE M.gmd_study_name = "Global Strain Bank" ';
+      }
+    }    
+  }
+
+  my ($sort, $order);
+  my $search_suffix = '';
+  # Handling sort and pagination variables if asked for
+  if($c->request->params->{sort}) {
+    $sort = $c->request->params->{sort};
+    my $col_prefix = getColumnPrefix($sort);
+    $order = ($c->request->params->{order})?$c->request->params->{order}:'asc';
+    $search_suffix .= " ORDER BY $col_prefix.$sort $order ";
+  }
+
+
+  my $page =  ($c->request->params->{page})?$c->request->params->{page}:1;
+  my $rows = ($c->request->params->{rows})?$c->request->params->{rows}:10;
+  my $offset = ($page-1) * $rows;
+  if(defined $page && defined $rows && $args[0] !~/download/) {
+    $search_suffix .= " LIMIT $offset, $rows ";
+  }
+
+  # Concat where condition
+  $search_str = $search_str_start . $search_substr . $download_selected_search_substr . $download_substr .$site_search . $search_suffix;
+
+  my $datamap = ();
+  my $dataArr = ();
+  my $map = {};
+  my $t_arr = ();
+  $datamap->{rows} = [];
+
+  # Reconnect to db if connection available
+  if(!$c->config->{gps_dbh}->ping) {
+    my $attr = {
+        mysql_auto_reconnect => $c->config->{mysql_auto_reconnect},
+        AutoCommit => $c->config->{AutoCommit}
+    };
+    $c->log->warn("Re-connected ".$c->config->{dsn});
+    my $dbh = DBI->connect($c->config->{dsn},$c->config->{user},$c->config->{password}, $attr);
+    $c->config->{gps_dbh} = $dbh;
+  }
+
+  my $sth;
+
+  # If now download, then fetch column headings also
+  if($args[0] !~/download/) {
+    my $sth;
+    try {
+      $sth = $c->config->{gps_dbh}->prepare($search_str) or die;
+      #print Dumper $search_str;
+      $sth->execute() or die;
+    }
+    catch {
+      my $res = {'err' => 'Error occured while retrieving data', 'errMsg' => qq{$_}};
+      $c->res->body(to_json($res));
+      return;
+    };
+    # Push metadata to the final map
+    while(my $row = $sth->fetchrow_hashref) {
+      push(@{$datamap->{rows}}, $row);
+    }
+  }
+  else {
+
+    # Creating column names
+    ######### CAREFUL - MIND THE ORDER OF QUERIES.
+    my $tables = ['gps_sequence_scape','gps_sequence_scape_npi','gps_sequence_data','gps_results','gps_metadata'];
+    my @orig_colname_arr;
+    my @csv_colname_arr;
+    my $temp_map = {};
+
+    foreach my $table (@$tables) {
+      my $col_search_str = "SELECT column_name, UCASE(REPLACE(SUBSTRING(column_name,5),'_',' ')) as c FROM information_schema.columns WHERE table_name = '$table'";
+      my $sth_col = $c->config->{gps_dbh}->prepare($col_search_str) or $datamap->{err} = '$!';
+      $sth_col->execute() or $datamap->{err} = '$!';
+      while(my @row = $sth_col->fetchrow_array) {
+        # Removing MAPFIND_No_OF_DUPLICATE, ASSFIND_No_OF_DUPLICATE etc COLUMNS
+        if($row[1]!~/DUPLICATES/) {
+          if(!$temp_map->{$row[1]} or $row[1]=~/COMMENTS/) {
+            push @orig_colname_arr, $row[0];
+            push @csv_colname_arr, $row[1];
+            # This temp_map is to remove repeated column names on further fetches
+            $temp_map->{$row[1]}++;
+          }
+        }
+      }
+    }
+    # Create column heading csv
+    my $datamap->{rows} = [];
+    push @{$datamap->{rows}}, \@csv_colname_arr;
+    # Fetching data
+    try {
+      $sth = $c->config->{gps_dbh}->prepare($search_str) or die;
+      # print Dumper $search_str;
+      $sth->execute() or die;
+    }
+    catch {
+      my $res = {'err' => 'Error occured while retrieving data', 'errMsg' => qq{$_}};
+      $c->res->body(to_json($res));
+      return;
+    };
+    my $t_arr = ();
+    if($sth->rows > 0) {
+      while(my $datahash = $sth->fetchrow_hashref) {
+        $t_arr = ();
+        foreach my $colname (@orig_colname_arr) {
+          # print Dumper $colname;
+          push @$t_arr, $datahash->{$colname};
+        }
+        push @{$datamap->{rows}}, $t_arr;
+      }
+
+      $c->res->body(to_json($datamap));
+      return;
+    }
+    else {
+      $c->res->body(to_json({'err'=> 'Samples not available for download!'}));
+      return;
+    }
+  }
+
+  # Getting the number of rows.
+  $search_str = "SELECT COUNT(*) FROM ($search_str_start $search_substr $download_selected_search_substr $download_substr $site_search) AS TEMP";
+  #print Dumper $search_str;
+  try {
+    $sth = $c->config->{gps_dbh}->prepare($search_str) or $datamap->{err} = "$!";
+    $sth->execute() or $datamap->{err} = "$!";
+    $datamap->{total} = $sth->fetchrow_array;
+  }
+  catch {
+    my $res = {'err' => 'Error occured while retrieving data', 'errMsg' => qq{$_}};
+    $c->res->body(to_json($res));
+    return;
+  };
+  $sth->finish;
+  # print Dumper $datamap;
+  $c->res->header("Cache-Control", "no-cache, no-store, must-revalidate"); # HTTP 1.1.
+  $c->res->header("Pragma", "no-cache"); # HTTP 1.0.
+  $c->res->header("Expires", 0); # Proxies.
+  $c->res->body(to_json($datamap));
+
+}
+
+sub getColumnPrefix {
+  my $col = shift;
+  return ($col =~ /^gmd/)? 'M': (($col =~ /^gsd/)? 'S': (($col =~ /^gss/)? 'SC':'U'));
+}
+
+sub updateComments : Path('/gps/update/comments') {
+  my ( $self, $c, @args ) = @_;
+
+  my $schema = $c->model('gps::GpsResult');
+  my $postData = from_json $c->request->params->{data};
+  my $rs;
+  my $txn;
+  my $res = {};
+  # Logging
+  my $log_str = '';
+  $log_str .= (defined $c->user->gpu_institution)?$c->user->get('gpu_name'):"GUEST-$c->request->address";
+  $log_str .= '-UpdateComments-'.to_json($postData) if(scalar @$postData > 0);
+  $c->log->warn($log_str);
+  my $q;
+  my $sth;
+  my $now;
+  foreach my $row (@{$postData}) {
+    try {
+      #print Dumper $rs;
+      # There can be a sample without a lane id. So if its not found in below command, we should
+      # get them using sanger id.
+      if(defined $row->{gss_lane_id} && defined $row->{gss_sanger_id}) {
+        $rs = $schema->search({'grs_lane_id' => $row->{gss_lane_id}});
+        if($rs->count) {                    
+
+          # Storing insilico st and serotype for updating
+          my $in_st = ($row->{grs_in_silico_st})? $row->{grs_in_silico_st} : "";
+          my $in_stype = ($row->{grs_in_silico_serotype})? $row->{grs_in_silico_serotype} : "";
+          $q = qq{UPDATE gps_results SET grs_comments = ?, grs_in_silico_st = ?, grs_in_silico_serotype = ?, grs_updated_on = now() WHERE grs_sanger_id = ? AND grs_lane_id = ?};
+          $sth = $c->config->{gps_dbh}->prepare($q) or die "Could not save! Error while preparing query - $!";
+          $sth->execute($row->{grs_comments}, $in_st, $in_stype, $row->{gss_sanger_id}, $row->{gss_lane_id}) or die "Could not save! Error while executing query - $!"; 
+        }        
+        else {
+          $res = {'err' => 'Error occured while saving', 'errMsg' => qq{Lane ID not found in the database}};
+          $c->res->body(to_json($res));
+        }
+      }
+      elsif(defined $row->{gss_sanger_id}) {
+        $rs = $schema->search({ 'grs_sanger_id' => $row->{gss_sanger_id}});
+        if($rs->count) {
+          my $in_st = ($row->{grs_in_silico_st})? $row->{grs_in_silico_st} : "";
+          my $in_stype = ($row->{grs_in_silico_serotype})? $row->{grs_in_silico_serotype} : "";
+          $q = qq{UPDATE gps_results SET grs_comments = ?, grs_in_silico_st = ?, grs_in_silico_serotype = ?, grs_updated_on = now() WHERE grs_sanger_id = ? AND grs_lane_id IS NULL};
+          $sth = $c->config->{gps_dbh}->prepare($q) or die "Could not save! Error while preparing query - $!";
+          $sth->execute($row->{grs_comments}, $in_st, $in_stype, $row->{gss_sanger_id}) or die "Could not save! Error while executing query - $!";
+        }
+        else {
+          # if lane and sample not found, then create a new row.
+          # Ideally this should not happen as there should be atleast a sanger id for a row.
+          # And we are also updating the QC decision table with newly added sample and lanes 
+          # when we update the sequencing pipeline table.
+          #$now = strftime "%Y-%m-%d %H:%M:%S", localtime;
+          #$schema->create({
+          #  'grs_sanger_id' => $row->{gss_sanger_id},
+          #  'grs_lane_id' => $row->{gss_lane_id},
+          #  'grs_comments' => $row->{grs_comments},
+          #  'grs_updated_on' => $now
+          #});
+          $res = {'err' => 'Error occured while saving', 'errMsg' => qq{Sanger ID not found in the database}};
+          $c->res->body(to_json($res));
+        }
+      }
+      else {
+        $res = {'err' => 'Error occured while saving', 'errMsg' => qq{Sanger ID and Lane ID not found in the database}};
+        $c->res->body(to_json($res));
+      }
+    }
+    catch {
+      #print Dumper $_;
+      $c->config->{gps_dbh}->rollback;
+      $res = {'err' => 'Error occured while saving', 'errMsg' => qq{$_}};
+      $c->res->body(to_json($res));
+
+    }
+  }
+  # Return the number of rows updated
+  if(!defined $res->{'err'}) {
+    $c->config->{gps_dbh}->commit;
+    $res->{'success'} = @{$postData};
+  }
+  $c->res->body(to_json($res));
+}
+
+sub updateDecision : Path('/gps/update/decision') {
+  my ( $self, $c, @args ) = @_;
+  my $type = (defined $c->request->param('type'))?$c->request->param('type'):1;
+  my $schema = $c->model('gps::GpsResult');
+  my $postData = from_json $c->request->params->{data};
+
+  my $rs;
+  my $txn;
+  my $res = {};
+  # Logging
+  my $log_str = '';
+  $log_str .= (defined $c->user->gpu_institution)?$c->user->get('gpu_name'):"GUEST-$c->request->address";
+  $log_str .= "-UpdateDecision-$type-".to_json($postData) if(scalar @$postData > 0);
+  $c->log->warn($log_str);
+  my ($q1, $q2);
+  my ($sth1, $sth2);
+  my $now;
+  $q1 = qq{UPDATE gps_results SET grs_decision = ?, grs_updated_on = now() WHERE grs_sanger_id = ? AND grs_lane_id = ?};
+  $sth1 = $c->config->{gps_dbh}->prepare($q1) or die "Could not save! Error while preparing query - $!";
+  $q2 = qq{UPDATE gps_results SET grs_decision = ?, grs_updated_on = now() WHERE grs_sanger_id = ? AND grs_lane_id IS NULL};
+  $sth2 = $c->config->{gps_dbh}->prepare($q2) or die "Could not save! Error while preparing query - $!";
+  my $success = {};
+
+  foreach my $row (@{$postData}) {
+    try {
+      # If both sanger and lane ids are present in the post data
+      if(defined $row->{gss_lane_id} && defined $row->{gss_sanger_id}) {
+        $rs = $schema->search({ 'grs_lane_id' => $row->{gss_lane_id} });
+        if($rs->count) {
+          $sth1->execute($type, $row->{gss_sanger_id}, $row->{gss_lane_id}) or die "Could not save! Error while executing query - $!"; 
+        }
+        else {
+          $res = {'err' => 'Error occured while saving', 'errMsg' => qq{Lane ID not found in the database}};
+          $c->config->{gps_dbh}->rollback;
+          $c->res->body(to_json($res));
+        }
+        # For counting the total no. of rows updated. This include all the duplicate rows for each public name in the postData list
+      }
+      # If only sanger id is present in the post data
+      elsif(defined $row->{gss_sanger_id}) {
+        $rs = $schema->search({ 'grs_sanger_id' => $row->{gss_sanger_id}});
+        if($rs->count) {
+          $sth2->execute($type, $row->{gss_sanger_id}) or die "Could not save! Error while executing query - $!";
+          # For counting the total no. of rows updated. This include all the duplicate rows for each public name in the postData list
+        }
+        else {
+          # if lane and sanger id not found, then create a new row.
+          # Ideally this should not happen as there should be atleast a sanger id for a row.
+          # And we are also updating the QC results table with newly added sanger id and lanes 
+          # when we update the sequencing pipeline table using the update script.
+          #$now = strftime "%Y-%m-%d %H:%M:%S", localtime;
+          #$schema->create({
+          #  'grs_sample_id' => $row->{gss_sample_id},
+          #  'grs_lane_id' => $row->{gss_lane_id},
+          #  'grs_decision' => $type,
+          #  'grs_updated_on' => $now
+          #});
+          $res = {'err' => 'Error occured while saving', 'errMsg' => qq{Sanger ID not found in the database}};
+          $c->config->{gps_dbh}->rollback;
+          $c->res->body(to_json($res));
+        }
+      }
+      else {
+        $res = {'err' => 'Error occured while saving', 'errMsg' => qq{Sanger ID and Lane ID not found in the database}};
+        $c->config->{gps_dbh}->rollback;
+        $c->res->body(to_json($res));
+      }
+
+      # Update sample_outcome based on the below conditions
+=head
+        For public name X. Is there A SINGLE record (only one) with public name X that has decision 1, outcome js "Sample completed".
+        if not 
+        For public name X. Is there more than one record with public name X that has decision 1, outcome is "Sample completed".
+        if not
+        Is there any record with public name X that has decision -1, outcome is "Sample in progress"
+        else
+        outcome is "Sample failed".
+=cut
+
+      # Get all sanger ids for the public name
+      if(defined $row->{gss_public_name} && $row->{gss_public_name} ne "") {
+        my $q = qq{SELECT gss_sanger_id FROM gps_sequence_scape where gss_public_name = ?};
+        my $sth = $c->config->{gps_dbh}->prepare($q) or die "Could not save! Error while preparing query - $!";
+        $sth->execute($row->{gss_public_name}) or die "Could not save! Error while executing query - $!";
+
+        if($sth->rows > 0) {
+          my $res_arr = $sth->fetchall_arrayref();
+          # Create the string of sanger ids for IN making query
+          my $t_arr = ();
+          foreach my $row (@$res_arr) {
+            (ref $row eq "ARRAY")? push @$t_arr, $row->[0]: push @$t_arr, $row;
+          }
+
+          my $sample_outcome;
+          # Creating a string for mysql string search with all the sanger ids for the given public name 
+          my $t_sam_str = '"'.join('","',@$t_arr).'"';
+          $q = qq{SELECT grs_decision FROM gps_results where grs_sanger_id IN ($t_sam_str)};
+          $sth = $c->config->{gps_dbh}->prepare($q) or die "Could not save! Error while preparing query - $!";
+          $sth->execute() or die "Could not save! Error while preparing query - $!";
+          if($sth->rows() > 0) {
+            while(my $arr = $sth->fetchrow_arrayref()) {
+              my $dec = $arr->[0];
+              # If there is atleast one sample with decision 1, then sample is completed
+              if($dec == 1) {
+                $sample_outcome = 'Sample completed';
+                last;
+              }
+              elsif($dec == -1) {
+                # If there is atleast one sample with decision -1, then sample is in progress
+                $sample_outcome = 'Sample in progress';
+                last;
+              }
+              elsif($dec == 0) { 
+                # If decision(in db)  = 0 and current decision = 1, then sample completed. Else failed
+                ($type == 1)?$sample_outcome = 'Sample Completed' : $sample_outcome = 'Sample failed';
+              }
+            }
+          }
+          else {
+            $res = {'err' => 'Error', 'errMsg' => "$row->{gss_public_name} not found in GPS Results table"};
+            $c->config->{gps_dbh}->rollback;
+            $c->res->body(to_json($res));
+            return;
+          }
+
+          # For counting the total no. of rows updated. This include all the duplicate rows for each public name in the postData list
+          $success->{rows} = ($sth->rows())?$sth->rows():0;
+          $success->{final_sample_outcome} = $sample_outcome;
+
+          # Update sample outcome
+          $q = qq{UPDATE gps_results SET grs_sample_outcome = "$sample_outcome", grs_updated_on = now() where grs_sanger_id IN ($t_sam_str)};
+          $sth = $c->config->{gps_dbh}->do($q);
+        }
+        else {
+          $res = {'err' => 'Error', 'errMsg' => "Sanger id not found for $row->{gss_public_name}"};
+          $c->config->{gps_dbh}->rollback;
+          $c->res->body(to_json($res));
+          return;
+        }
+      }
+      else {
+        $res = {'err' => 'Error', 'errMsg' => "Public name not found for $row->{gss_sanger_id}"};
+        $c->config->{gps_dbh}->rollback;
+        $c->res->body(to_json($res));
+        return;
+      }
+    }
+    catch {
+      $res = {'err' => 'Error occured while saving', 'errMsg' => qq{$_}};
+      $c->config->{gps_dbh}->rollback;
+      $c->res->body(to_json($res));
+      return;
+    }
+  }
+  # Return the number of rows updated
+  if(!defined $res->{'err'}) {
+    $c->config->{gps_dbh}->commit;
+    $res->{'success'} = $success;
+  }
+
+  $c->res->body(to_json($res));
+}
+
+# Get fastq urls from EBI filereport service
+# http://www.ebi.ac.uk/ena/data/warehouse/filereport?accession=ERS221588&result=read_run&fields=fastq_ftp
+sub getFastq :Path('/fastq/url/') {
+  my ( $self, $c, @args ) = @_;
+  # Get post data
+  my $postData = $c->request->body_data;
+  $ENV{'HTTP_PROXY'} = $c->config->{http_proxy};
+  # Logging
+  my $log_str = '';
+  $log_str .= (defined $c->user->gpu_institution)?$c->user->get('gpu_name'):"GUEST-$c->request->address";
+  $log_str .= "-FastqUrl-".to_json($postData) if(scalar @{$postData->{accession}} > 0);
+  $c->log->warn($log_str);
+  # Get type of url to retrieve - submitted_ftp or fastq_ftp
+  my $type = $postData->{type};
+  my $url_arr = {};
+  # For each err id, get the ftp url and store in a hash of arrays
+  foreach my $err (@{$postData->{accession}}) {
+    my $arr = get_fastq_ftp_url($err, $type);
+    if($#$arr >= 0) {
+      $url_arr->{$err} = $arr;
+    }
+  }
+  # return json data back to server
+  $c->res->body(to_json($url_arr));
+}
+
+# Get ftp url from ebi using Mechanize, parse and return the array of urls
+sub get_fastq_ftp_url {
+    my ($acc, $url_type) = @_;
+    my $url;
+    # initializing url based on type
+    if ( $url_type eq "submitted_ftp" ) {
+        $url = "http://www.ebi.ac.uk/ena/data/warehouse/filereport?accession=$acc&result=read_run&fields=submitted_ftp";
+    }
+    else {
+        $url = "http://www.ebi.ac.uk/ena/data/warehouse/filereport?accession=$acc&result=read_run&fields=fastq_ftp";
+    }
+    # New mechanize object
+
+    my $mech = WWW::Mechanize->new;
+    # download from given url
+    
+    $mech->get($url) or return [];
+
+
+    my $down = $mech->content( format => 'text' );
+
+    # Parse the content
+    my @lines = split( /\n/, $down );
+    my $arr = ();
+    foreach my $x ( 1 .. $#lines ) {
+        my @fields = split( /;/, $lines[$x] );
+        foreach my $f (@fields){ 
+          push(@$arr, "ftp://$f"); 
+        }
+    }
+    return $arr;
+}
+
+# Bulk update ST data into gps_results table via file upload
+sub uploadBulk_ST :Path('/updateST/bulk/') {
+  my ( $self, $c, @args ) = @_;
+  # Get post data
+  my $postData = $c->request->body_data;
+  # Logging
+  my $log_str = '';
+  $log_str .= (defined $c->user->gpu_institution)?$c->user->get('gpu_name'):"GUEST-$c->request->address";
+  $log_str .= "-BulkUpload-ST-".to_json($postData) if(scalar keys %{$postData} > 0);
+  $c->log->warn($log_str);
+  my $upfile = $c->request->upload('st_update_file');
+  my $type = $c->request->param('st_update_type');
+  my $res = {};
+  $res->{rows_updated} = 0;
+
+  if(!$type) {
+    $res->{err} = 'Type not specified';
+    $c->res->body(to_json($res));
+    return;
+  }
+  my $excel = Spreadsheet::XLSX -> new ($upfile->fh);
+
+  # Transaction start
+  my $schema = $c->model('gps::GpsResult')->result_source->schema;
+  
+  # Begin transaction
+
+  eval {
+    GETOUT: foreach my $sheet (@{$excel -> {Worksheet}}) {
+      $sheet -> {MaxRow} ||= $sheet -> {MinRow};
+       foreach my $row ($sheet -> {MinRow} +1 .. $sheet -> {MaxRow}) {
+        $sheet -> {MaxCol} ||= $sheet -> {MinCol};
+        my $lane = $sheet->{Cells}[$row][0]->{Val};
+        my $st = $sheet->{Cells}[$row][1]->{Val};
+        if ($lane && $st) {
+          my $rows_affected;
+          try {
+            if($type eq "st") {
+              $rows_affected = $c->config->{gps_dbh}->do("update gps_results set grs_in_silico_st = '$st', grs_updated_on = now() where grs_lane_id = '$lane'") or die $!;
+            }
+            elsif($type eq "stype") {
+              $rows_affected = $c->config->{gps_dbh}->do("update gps_results set grs_in_silico_serotype = '$st', grs_updated_on = now() where grs_lane_id = '$lane'") or die $!;
+            }
+            if($rows_affected == 0  or $rows_affected eq '0E0') {
+              push @{$res->{rows_not_updated}}, $lane;
+            }
+            else {
+              $res->{rows_updated}++;
+            }
+          }
+          catch {
+            # Updated = 0 due to rollback
+            $res->{rows_updated} = 0;
+            $c->config->{gps_dbh}->rollback();
+            $res->{err} = "Could not complete your request. Please check the input file: $_";
+            $c->res->body(to_json($res));
+            last GETOUT;
+          };
+        }
+      }
+    }
+  };
+  # If any error occured, then rollback
+  if($@) {
+    eval( $c->config->{gps_dbh}->rollback );
+  }
+  if(!$res->{err}) {
+    $c->config->{gps_dbh}->commit();
+  }
+
+  $c->res->body(to_json($res));
+}
+
+
+# Get json formatted data for testing googlemap GeoJSON API
+# This function takes a column name in gps_metadata column and 
+# generates a json with its disticnt column values and no. of entries
+sub getMetaJson :Path('/json/meta') {
+  my ( $self, $c, @args ) = @_;
+  my $map = [];
+  if(scalar @args > 0) {
+    # Get the column name
+    my $colname_search = $args[0];
+    # Reconnect to db if connection available
+    if(!$c->config->{gps_dbh}->ping) {
+      my $attr = {
+          mysql_auto_reconnect => $c->config->{mysql_auto_reconnect},
+          AutoCommit => $c->config->{AutoCommit}
+      };
+      $c->log->warn("Re-connected ".$c->config->{dsn});
+      my $dbh = DBI->connect($c->config->{dsn},$c->config->{user},$c->config->{password}, $attr);
+      $c->config->{gps_dbh} = $dbh;
+    }
+
+    my $q = qq {
+      SELECT m.gmd_country, count(m.gmd_country) as gmd_country_count
+      FROM gps_sequence_scape s, gps_metadata m, gps_results r 
+      WHERE m.gmd_public_name = s.gss_public_name 
+      AND s.gss_sanger_id = r.grs_sanger_id 
+      AND r.grs_lane_id = s.gss_lane_id 
+      AND r.grs_decision<>0 
+      GROUP BY $colname_search;
+    };
+
+    my $sth = $c->config->{gps_dbh}->prepare($q);
+    $sth->execute;
+    # Create a resultset with a groupby clause
+    if($sth->rows > 0) {
+      while(my $row = $sth->fetchrow_hashref) {
+        # Creating a hash of column value and count
+        push @{$map}, {$row->{'gmd_country'} => $row->{gmd_country_count}};
+      }
+      # Send back json
+      $c->res->body(to_json($map));
+    }
+    else {
+      # If no column found then show the 404 template
+      $c->res->body('Column name not found');      
+    }
+  }
+  else {
+    # If no arguments then show the 404 template
+    $c->res->body('Column name argument missing');
+  }
+}
+
+
+# Assembly file download
+sub downloadFiles :Path('/download') {
+  my ( $self, $c, @args ) = @_;
+  # Get post data
+  my $postData = $c->request->body_data;
+  # Logging
+  my $log_str = '';
+  $log_str .= (defined $c->user->gpu_institution)?$c->user->get('gpu_name'):"GUEST-$c->request->address";
+
+  if(scalar keys %{$postData} <= 0) {
+    $c->res->body(to_json({'err'=>'No input found!'}));
+    return;
+  }
+
+  if($args[0]=~/assemblies/) {
+    $log_str .= "-AssemblyDownload-".to_json($postData) if(scalar @{$postData->{lane_ids}} > 0);
+  }
+  elsif($args[0]=~/annotations/) {
+    $log_str .= "-AnnotatoionDownload-".to_json($postData) if(scalar @{$postData->{lane_ids}} > 0);
+  }
+  else {
+    $c->res->body({err=>'Bad url!'});
+  }
+  
+  $c->log->warn($log_str);
+  # Get type of url to retrieve - submitted_ftp or fastq_ftp
+
+  my $file_arr = ();
+  # For each err id, get the ftp url and store in a hash of arrays
+  foreach my $lane (@{$postData->{lane_ids}}) {
+    if($args[0]=~/assemblies/) {
+      push @$file_arr, File::Spec->catfile($c->config->{download_path}, '2245_assemblies', $lane.'.contigs_velvet.fa');
+    }
+    elsif($args[0]=~/annotations/) {
+      push @$file_arr, File::Spec->catfile($c->config->{download_path}, '2245_annotations', $lane.'.gff');
+    }
+  }
+  # Creating a zip file
+  my $zip = Archive::Zip->new();
+  foreach my $file (@$file_arr) {
+    my $file_name = basename $file;
+    if(-s "$file") {
+      $zip->addFile($file, $file_name, 1);
+    }
+  }
+  my $outfilename = "$args[0]_".$c->user->get('gpu_name')."_".time.".zip";
+  # Save the Zip file
+  my $outfile = File::Spec->catfile($c->config->{dataviewer_tmp}, $outfilename);
+  unless ( $zip->writeToFileNamed($outfile) == AZ_OK ) {
+    $c->res->body({err=>'Error creating zip file... Please try again!'});
+  }
+
+# my $fh = IO::File->new( $outfile, 'r' );
+
+# binmode $fh;
+
+#  use File::stat;
+#  my $statObj = stat($outfile);
+   $c->res->header('Content-Type' => "text/json");
+#   # $c->res->header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+#   $c->res->header('Content-Length' => $statObj->size);
+#   $c->res->header('Content-Disposition' => "attachment;filename=$outfilename\n\n");
+#   # $c->finalize_headers();
+#   $c->res->body( $fh );
+  # return json data back to server
+  $c->res->body(to_json({'file'=>$outfile}));
+}
+
+
+=head 
+
+# Search gps data
+# Fetching sequence data from gps db
+sub searchGPSData_GET :Path('/gps/data_old/') {
+  my ( $self, $c, @args ) = @_;
+
+  # Logging
+  my $log_str = '';
+  $log_str .= (defined $c->user->gpu_institution)?$c->user->get('gpu_name'):"GUEST-$c->request->address";
+  my $search_data;
+  if($c->request->body_data) {
+    $search_data = $c->request->body_data;
+  }
+
+  # Creating pagination variables
+  my $page =  ($c->request->params->{page})?$c->request->params->{page}:1;
+  my $rows = ($c->request->params->{rows})?$c->request->params->{rows}:10;
+  my $offset = ($page-1) * $rows;
+  my ($sort, $order);
+  # Creating srot variables
+  if($c->request->params->{sort}) {
+    $sort = $c->request->params->{sort};
+    $order = ($c->request->params->{order})?$c->request->params->{order}:'asc';
+  }
+
+  #creating query
+  my $search_hash = {};
+  my $t = {}; 
+  if(defined $search_data->{columns} and ref $search_data->{columns} eq 'ARRAY') {
+    if(scalar @{$search_data->{columns}} == 1 && $search_data->{search_str} ne '') {
+      if($search_data->{eq}->[0] =~/like/) {
+        $t = {};
+        # If the search term is 0, then it is no longer an array - dont know why.
+        # So tackling it
+        if(ref $search_data->{search_str} eq "ARRAY") {
+          $t->{$search_data->{eq}->[0]} = qq{$search_data->{search_str}->[0]}.'%';  
+        }
+        else {
+          $t->{$search_data->{eq}->[0]} = qq{$search_data->{search_str}}.'%';
+        }
+        
+        $search_hash->{$search_data->{columns}->[0]} = $t;
+      }
+      else {
+        $t = {};
+        # If the search term is 0, then it is no longer an array - dont know why.
+        # So tackling it
+        if(ref $search_data->{search_str} eq "ARRAY") {
+          $t->{$search_data->{eq}->[0]} = $search_data->{search_str}->[0];
+        }
+        else {
+          $t->{$search_data->{eq}->[0]} = $search_data->{search_str};
+        }
+        $search_hash->{$search_data->{columns}->[0]} = $t;
+      }
+    }
+    elsif(scalar @{$search_data->{columns}} > 1) {
+      my $hash = {};
+      for (my $i=0; $i<scalar @{$search_data->{columns}}; $i++) {
+        # Take 2 columns each with a logical operator
+        $hash = {};
+        if($search_data->{eq}->[$i] eq 'like') {
+          $t = {};
+          $t->{'like'} = qq{$search_data->{search_str}->[$i]}.'%';
+          $hash->{$search_data->{columns}->[$i]} = $t;
+          #$search_hash->{'-and'}->{$search_data->{columns}->[$i]} = $t;
+        }
+        else {
+          $t = {};
+          $t->{$search_data->{eq}->[$i]} = $search_data->{search_str}->[$i];
+          $hash->{$search_data->{columns}->[$i]} = $t;
+        }
+        push(@{$search_hash->{'-and'}}, $hash);
+      }  
+    }
+  }
+  # Logging
+  if($args[0] eq 'download') {
+    $log_str .= '-Download';
+  }
+
+  if(scalar keys %$search_hash <= 0) {
+    $log_str .= '-PageLoad';
+  } else {
+    $log_str .= '-Search:'. to_json($search_hash);
+  }
+
+  if(defined $sort) {
+    $log_str .= "-Sort-$sort-$order";
+  }
+
+  $c->log->warn($log_str);
+  #print Dumper $search_hash;
+
+  # Get each table class
+  # Search for GpsSequenceData and then with GpsMetadata
+  my $schema_gpd = $c->model('gps::GpsSequenceData');
+  my @col_arr_gpd = $schema_gpd->result_source->columns;
+  
+  my $schema_gmd = $c->model('gps::GpsMetadata');
+  my @col_arr_gmd = $schema_gmd->result_source->columns;
+  
+  my @col_combined = [@col_arr_gpd,@col_arr_gmd];
+
+  # Search query with page parameter for table 1
+  my $rs_gpd;
+  if($c->request->params->{sort}) {
+    $rs_gpd = $schema_gpd->search( $search_hash,
+            {
+              page => $page,
+              rows => $rows,
+              order_by => { -$order => $sort }
+            }
+          );
+  }
+  elsif($args[0] eq 'download') {
+    # Get all rows if clicked download
+    $rs_gpd = $schema_gpd->search_rs( $search_hash );
+  }
+  else {
+    $rs_gpd = $schema_gpd->search_rs( $search_hash,
+            {
+              page => $page,
+              rows => $rows,
+            }
+          );
+  }
+
+  # Search query with page parameter for table 1
+  my $rs_gmd;
+
+  my $datamap = ();
+  my $dataArr = ();
+  my $map = {};
+  my $t_arr = ();
+  $datamap->{rows} = [];
+  while(my $row = $rs_gpd->next) {
+    $map = {};
+    $t_arr = ();
+    foreach my $k (@col_arr_gpd) {
+      
+      if($args[0] eq 'download') {
+        push(@$t_arr, $row->$k);
+      }
+      else {
+        $map->{$k} = $row->$k;
+      }
+    }
+    if($args[0] eq 'download') {
+      # For each stat, get metadata
+      $rs_gmd = $schema_gmd->search( {
+              'gmd_public_name' => $row->gsd_public_name
+            }
+          );
+
+      # Push metadata to the final map
+      while(my $row = $rs_gmd->next) {
+        foreach my $k (@col_arr_gmd) {
+          
+          if($args[0] eq 'download') {
+            push(@$t_arr, $row->$k);
+          }
+          else {
+            $map->{$k} = $row->$k;
+          }
+        }
+      }
+    }
+
+    if($args[0] eq 'download') {
+      $log_str .= 'download';
+      push @$dataArr, $t_arr;
+    }
+    else {
+      push @{$datamap->{rows}}, $map;
+    }
+  }
+
+  if($args[0] eq 'download') {
+    $c->stash->{datamap} = $datamap;
+    push(@{$c->stash->{col}}, [@col_combined]);
+    #$c->stash->{template} = 'site/pipe_download.tt';
+
+    # Push column to the front of the array
+    unshift(@$dataArr, @col_combined);
+    #$c->res->content_type('text/comma-separated-values');
+    #$c->res->body(to_json($entity));
+    
+    # Finally forward processing to the CSV View
+    $c->res->body(to_json($dataArr));
+    #$c->stash->{template} = 'site/pipe_download.tt';
+    return
+  }
+  else {
+    # Get total entries
+    $datamap->{total} = $rs_gpd->pager->total_entries;
+    $c->res->body(to_json($datamap));
+  }
+}
+
+# Fetching data from gps db
+sub getPipeJson :Path('/json/pipe/') {
+  my ( $self, $c, @args ) = @_;
+  my $type = $args[0]; 
+  my $id = $args[1];
+
+  # Creating pagination variables
+  my $page =  ($c->request->params->{page})?$c->request->params->{page}:1;
+  my $rows = ($c->request->params->{rows})?$c->request->params->{rows}:10;
+  my $offset = ($page-1) * $rows;
+  my ($sort, $order);
+  # Creating srot variables
+  if($c->request->params->{sort}) {
+    $sort = $c->request->params->{sort};
+    $order = ($c->request->params->{order})?$c->request->params->{order}:'asc';
+  }
+
+  my $schema_gpd = $c->model('gps::GpsSequenceData');
+  my @col_arr_gpd = $schema_gpd->result_source->columns;
+  
+  my $schema_gmd = $c->model('gps::GpsMetadata');
+  my @col_arr_gmd = $schema_gmd->result_source->columns;
+  
+  my $colname_search;
+  
+  # Search query with page parameter for table 1
+  my $rs_gpd;
+  if($c->request->params->{sort}) {
+    $rs_gpd = $schema_gpd->search( undef,
+            {
+              page => $page,
+              rows => $rows,
+              order_by => { -$order => $sort }
+            }
+          );
+  }
+  else {
+    $rs_gpd = $schema_gpd->search_rs( undef,
+            {
+              page => $page,
+              rows => $rows,
+            }
+          );
+  }
+
+  # Search query with page parameter for table 1
+  my $rs_gmd;
+
+
+  my $datamap = ();
+  my $map = {};
+  while(my $row = $rs_gpd->next) {
+    $map = {};
+    foreach my $k (@col_arr_gpd) {
+      $map->{$k} = $row->$k;
+    }
+    # For each stat, get metadata
+    $rs_gmd = $schema_gmd->search( {
+            'gmd_sanger_id' => $row->gsd_sanger_id
+          }
+        );
+
+    # Push metadata to the final map
+    while(my $row = $rs_gmd->next) {
+      foreach my $k (@col_arr_gmd) {
+        $map->{$k} = $row->$k;
+      }
+    }
+
+    push @{$datamap->{rows}}, $map;
+  }
+  # Get total entries
+  $datamap->{total} = $rs_gpd->pager->total_entries;
+
+  $c->res->body(to_json($datamap));
+}
+
+
+
+# Below codes are not used and are old
+sub downloadPipeJson :Path('/pipe/download') {
+  my ( $self, $c, @args ) = @_;
+  my $type = $args[0]; 
+  my $id = $args[1];
+  
+  my $schema = $c->model('gps::GpsSequenceData');
+  my @col_arr = $schema->result_source->columns;
+  my $colname_search;
+  if($type eq 'lane'){
+    $colname_search = 'gsd_lane_id';
+  }
+  elsif($type eq 'sanger'){
+    $colname_search = 'gsd_sanger_id';
+  }
+  elsif($type eq 'pubname'){
+    $colname_search = 'gsd_public_name';
+  }
+
+  # Search query with page parameter
+  my $rs = $schema->search({
+              $colname_search => { -like => "$id%" }
+            });
+  # Array that stores each row of the csv format data
+  my $dataarr = ();
+  my $arr = ();
+  while(my $row = $rs->next) {
+    foreach my $k (@col_arr) {
+      push @$arr, $row->$k;
+    }
+    push @$dataarr, [@$arr];
+  }
+
+  $c->stash->{dataarr} = $dataarr;
+  $c->stash->{col} = \@col_arr;
+  $c->stash->{template} = 'site/pipe_download.tt';
+  #$c->res->body(to_json($dataarr));
+}
+
+sub getMetaJson :Path('/json/meta/') {
+  my ( $self, $c, @args ) = @_;
+  my $type = $args[0]; 
+  my $id = $args[1];
+  # Logging
+  my $log_str = '';
+  $log_str .= (defined $c->user->gpu_institution)?$c->user->get('gpu_name'):"GUEST-$c->request->address";
+  $log_str .= "-MetaJson-$type-$id";
+  $c->log->warn($log_str);
+
+  my $schema = $c->model('gps::GpsMetadata');
+  my @col_arr = $schema->result_source->columns;
+  my $colname_search;
+
+  if($type eq 'pubname'){
+    $colname_search = 'gmd_public_name';
+  }
+  my $rs = $schema->search({$colname_search => { -like => "$id%" }});
+  my $arr = ();
+
+  my $datamap = ();
+  if($rs->count > 0) {
+    my $map = {};
+    while(my $row = $rs->next) {
+      $map = {};
+      foreach my $k (@col_arr) {
+        $map->{$k} = $row->$k;
+      }
+      push @{$datamap->{rows}}, $map;
+    }
+    # Get total entries
+
+    $datamap->{total} = $rs->count;
+    $datamap->{type} = $type;
+    $datamap->{search} = $id;
+  }
+  else {
+    $datamap->{err} = 'No data found';
+  }
+  $c->res->body(to_json($datamap));
+}
+
+
+# Search gps_sequence_data table for a particular type (lane/sanger)
+sub searchPipe :Path('/pipe/2245/') {
+  my ( $self, $c, @args ) = @_;
+  my $type = $args[0]; 
+  my $id = $args[1];
+  my $schema = $c->model('gps::GpsSequenceData');
+  my @col_arr = $schema->result_source->columns;
+  my $colname_search;
+  if($type eq 'lane'){
+    $colname_search = 'gsd_lane_id';
+  }
+  elsif($type eq 'sanger'){
+    $colname_search = 'gsd_sanger_id';
+  }
+  elsif($type eq 'pubname'){
+    $colname_search = 'gsd_public_name';
+  }
+  my $rs = $schema->search({$colname_search => { -like => "$id%" }});
+  my $arr = ();
+  while(my $row = $rs->next) {
+    push @$arr, $row;
+  }
+
+  $c->stash->{type} = $type;
+  $c->stash->{search} = $id;
+  $c->stash->{data} = $arr;
+  $c->stash->{col} = \@col_arr;
+  $c->stash->{username} = 'GPS Search';
+  $c->stash->{template} = 'site/test.tt';
+}
+
+# Search gps_sequence_data table for a particular type (lane/sanger)
+sub searchMeta :Path('/meta/2245/') {
+  my ( $self, $c, @args ) = @_;
+  my $type = $args[0]; 
+  my $id = $args[1]; 
+  my $schema = $c->model('gps::GpsMetadata');
+  my @col_arr = $schema->result_source->columns;
+  my $colname_search;
+  if($type eq 'sanger'){
+    $colname_search = 'gmd_sanger_id';
+  }
+  elsif($type eq 'pubname'){
+    $colname_search = 'gmd_public_name';
+  }
+  elsif($type eq 'inst'){
+    $colname_search = 'gmd_institution';
+  }
+  my $rs = $schema->search({$colname_search => { -like => "$id%" }});
+  my $arr = ();
+  while(my $row = $rs->next) {
+    push @$arr, $row;
+  }
+
+  $c->stash->{type} = $type;
+  $c->stash->{search} = $id;
+  $c->stash->{data} = $arr;
+
+  $c->stash->{col} = \@col_arr;
+  $c->stash->{username} = 'GPS Metadata Search';
+  $c->stash->{template} = 'site/test.tt';
+}
+=cut
+=encoding utf8
+
+=head1 AUTHOR
+
+Jyothish  N.N.T. Bhai
+
+=head1 LICENSE
+
+This library is free software. You can redistribute it and/or modify
+it under the same terms as Perl itself.
+
+=cut
+
+__PACKAGE__->meta->make_immutable;
+
+1;
