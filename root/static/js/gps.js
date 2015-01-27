@@ -1324,20 +1324,21 @@ var show_GC_images = function() {
       }
       gc_img_data = data;
       var html = '<div class="colorbox_head center head">GC Content [ % ] <a class="linkhead bgblue right" onClick=\'downloadAllGCImages();\'>Download All </a></div>';
+      html += '<div id="container">';
       html += '<div id="gc_img_container"><img id="gc_img" src="data:image/png;base64,'+ data[Object.keys(data)[0]] +'"></div>'
       html += '<div class="colorbox_display">';
       html += '<div id="thumbscontainer"><div id="hovered_lane" style="position:absolute;"></div>';
       for(var lane in data) {
         html += "<img id='thumb_img' class='img_tooltip' onClick='$(\"#gc_img\").attr(\"src\", this.src);' title='"+ lane +"' src='data:image/png;base64," + data[lane] + "'>";
       }
-      html += '</div></div>'
+      html += '</div></div></div>'
       var default_lane = Object.keys(data)[0];
       // showGCImage(default_lane, data[default_lane]);
       var wd = ($('#layout').width() < 600)? $('#layout').width() * 0.8 : '600';
       $.colorbox({
         html:  html,
         width: wd,
-        maxHeight: $('#layout').height() * 0.8, // 80% of the layout height and width
+        maxHeight: $('#layout').height() * 0.95, // 80% of the layout height and width
         maxWidth: "600px",
         // close: '<img src="'+base_request_url+'static/images/close.png">'
       });

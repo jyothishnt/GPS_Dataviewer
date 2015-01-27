@@ -36,7 +36,6 @@ sub getGCimages :Path('/get_gc_images') {
     $c->res->body(to_json({'err'=>'No input found!'}));
     return;
   }
-use Data::Dumper;
 
   $log_str .= "-GC-".to_json($postData) if(scalar @{$postData->{lane_ids}} > 0);
   $c->log->warn($log_str);
