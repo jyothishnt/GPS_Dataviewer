@@ -11,7 +11,7 @@ fieldset.action {background:#9da2a6; margin-top:20px;}
 legend {color:#1e62d0; padding:0 10px; margin:-16px 0 0 -11px; font-weight:bold;}
 label {font-size:11px; font-weight:bold; color:#666;}
 label.opt {font-weight:normal;}
-.linkhead {background: "white"; color:#006bd0; font-size: 15px; padding: 10px 0px 0px 10px; font-weight:bold; cursor: pointer;}
+.linkhead {background: "white"; color:#006bd0; font-size: 15px; padding: 3px 10px; font-weight:bold; cursor: pointer;}
 dl {width: 100%; clear:both;}
 /*dt {float:left; text-align:right; width:90px; line-height:25px; margin:0 10px 10px 0;}*/
 dd {width: 100%; padding: 5px 0 5px 10px;background:rgba(0, 0, 0, 0.14); float:left; line-height:25px; margin:0 0 5px 0;}
@@ -408,3 +408,68 @@ button.add_selected {
 button.close{padding:0;cursor:pointer;background:transparent;border:0;-webkit-appearance:none;}
 /*Safari*/
 select, input, textarea, button {outline:none; resize:none;}
+
+
+#thumbscontainer {
+	white-space: nowrap;
+	overflow-y: hidden;
+	overflow-x: auto;
+	-webkit-overflow-scrolling: touch;
+	text-align: center;
+	padding: 10px 1px;
+	background: #ddd;
+	margin-top:15px;
+	/*border-top: 1px solid #888;*/
+}
+
+#gc_img_container {
+	width: auto;
+}
+img#gc_img{
+	width:100%;
+}
+p#tooltip {
+	clear:both;
+	margin:0;
+	padding:.5em;
+}
+#tooltip{
+	position:absolute;
+	border: 1px solid #007fc5;
+	background: #eee;
+	padding:2px 5px;
+	color:#007fc5;
+	display:none;
+}
+#thumbscontainer img {
+	width:100px;
+	height:73px;
+	border: 1px solid #777;
+	display: inline;
+	padding: 0px 2px;
+	margin: 0 5px;
+	cursor: pointer;
+}
+#thumbscontainer img:hover {
+	border: 1px solid #007fc5;
+	display: inline;
+	padding: 0 2px;
+	cursor: pointer;
+}
+#thumbscontainer img:selected {
+	border: 1px solid black;
+}
+#thumbscontainer a {
+	display: inline;
+}
+
+#thumbscontainer a:hover {
+background-color:gray;
+}
+#thumbscontainer a:active, #thumbscontainer a:focus {
+background-color:gray;
+}
+.right {
+	position: absolute;
+	right: 0px;
+}

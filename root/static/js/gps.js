@@ -80,7 +80,7 @@
             showMsg(data.err,'danger');
           }
           if(data && data.total == 0) {
-            showMsg('No data found!')
+            showMsg('No data available!')
             // showColorbox({
             //     str : 'No data was returned from the server',
             //     title: 'No data found!'
@@ -1024,7 +1024,7 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
           });
         }
         else {
-          showMsg('Fastq not found!')
+          showMsg('Fastq not available!')
         }
         download_clicked = false;
       },
@@ -1123,7 +1123,7 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
 
   })(); 
   window.onload = function() {
-    setTimeout(function(){document.getElementById('block_screen').style.display = 'none';},1000);
+    setTimeout(function(){document.getElementById('block_screen').style.display = 'none';},100);
   }
 
 
@@ -1275,6 +1275,113 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
     });
 
   }
+var gc_img_data = {};
+var gc_clicked = false;
+var show_GC_images = function() {
+  if(download_clicked) {
+    showMsg('A request already in progress... please wait')
+    return;
+  }
+  // To avoid second click on the link
+  gc_clicked = false;
+  checkIfDataEdited();
+  $('#dg').edatagrid('acceptChanges');
+  var chkdArr = $('#dg').datagrid('getChecked');
+  var arr = new Array();
+  $.each(chkdArr, function(ind, row) {
+    // Push only if lane id is present
+    if(row.gss_lane_id != "" && row.gss_lane_id != undefined )// && row.grs_decision != 0 )
+      arr.push(row.gss_lane_id);
+  });
 
+  var msg;
+  var str = '';
+  if(chkdArr.length <= 0 || arr.length <=0) {
+    // No selection made
+    showMsg('Please select a sample with a lane id!');
+    download_clicked = false;
+    return;
+  }
+  else {
+    msg = showMsg('Fetching data...');
+    if(arr.length >= 100) {
+      showMsg('Please wait while we retrieve the files...')
+    }
+  }
+  var url = base_request_url + '/get_gc_images/';
+  $.ajax({
+    url: url,
+    data: {
+      'lane_ids' : arr,
+    },
+    type: 'POST',
+    // processData: false,
+    dataType: 'json',
+    success: function(data, textStatus, jqXHR) {
+      if(Object.keys(data).length <= 0) {
+        showMsg('Sorry, GC content data not available for the selected samples.');
+        return;
+      }
+      gc_img_data = data;
+      var html = '<div class="colorbox_head center head">GC Content [ % ] <a class="linkhead bgblue right" onClick=\'downloadAllGCImages();\'>Download All </a></div>';
+      html += '<div id="gc_img_container"><img id="gc_img" src="data:image/png;base64,'+ data[Object.keys(data)[0]] +'"></div>'
+      html += '<div class="colorbox_display">';
+      html += '<div id="thumbscontainer"><div id="hovered_lane" style="position:absolute;"></div>';
+      for(var lane in data) {
+        html += "<img id='thumb_img' class='img_tooltip' onClick='$(\"#gc_img\").attr(\"src\", this.src);' title='"+ lane +"' src='data:image/png;base64," + data[lane] + "'>";
+      }
+      html += '</div></div>'
+      var default_lane = Object.keys(data)[0];
+      // showGCImage(default_lane, data[default_lane]);
+      var wd = ($('#layout').width() < 600)? $('#layout').width() * 0.8 : '600';
+      $.colorbox({
+        html:  html,
+        width: wd,
+        maxHeight: $('#layout').height() * 0.8, // 80% of the layout height and width
+        maxWidth: "600px",
+        // close: '<img src="'+base_request_url+'static/images/close.png">'
+      });
+      // $('#gc_img_container').width($())
+      gc_clicked = true;
 
+      xOffset = 10;
+      yOffset = 30;
+        // these 2 variable determine popup's distance from the cursor
+        // you might want to adjust to get the right result   
+      /* END CONFIG */    
+      $("img.img_tooltip").hover(function(e){
+        this.t = this.title;
+        this.title = "";                    
+        $("body").append("<p id='tooltip'>"+ this.t +"</p>");
+        $("#tooltip")
+          .css("top",(e.pageY + yOffset) + "px")
+          .css("left",(e.pageX + xOffset) + "px")
+          .css("z-index", 99999)
+          .fadeIn("fast");    
+          },
+            function(){
+              this.title = this.t;
+              $("#tooltip").remove();
+            }); 
+        $("img.img_tooltip").mousemove(function(e){
+        $("#tooltip")
+          .css("top",(e.pageY + yOffset) + "px")
+          .css("left",(e.pageX - $('#tooltip').width()/2) + "px");
+      });     
 
+    }
+  });
+}
+
+var downloadAllGCImages = function(){
+  var zip = new JSZip();
+  var filename, img_data;
+  for(var lane in gc_img_data) {
+    filename = lane + '.png';
+    img_data = gc_img_data[lane];
+    zip.file(filename, img_data, {base64: true});
+  }
+  var content = zip.generate({type:"blob"});
+  // see FileSaver.js
+  saveAs(content, "GPS_dataviewer_GC_images.zip");
+}

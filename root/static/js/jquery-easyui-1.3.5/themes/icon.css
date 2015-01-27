@@ -1,6 +1,9 @@
 .icon-download{
 	background:url('icons/download.gif') no-repeat center center;
 }
+.icon-graph{
+	background:url('icons/graph.png') no-repeat center center;
+}
 .icon-info{
 	background:url('icons/info-small.png') no-repeat center center;
 }

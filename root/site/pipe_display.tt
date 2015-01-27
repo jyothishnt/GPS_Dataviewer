@@ -58,6 +58,7 @@
             <a href="javascript:void(0);" onClick="saveData()" class="easyui-linkbutton" iconCls="icon-save" plain="true" title="Save to database">Save</a>
             <a href="javascript:void(0);" onClick="javascript:location.reload();" class="easyui-linkbutton" iconCls="icon-reload" plain="true" title="Reload Page">Reload Page</a>
             <a href="javascript:void(0);" class="easyui-menubutton" data-options="menu:'#tools_menu',iconCls:'icon-wand'" plain="true" title="Utility Tools">Tools</a>
+            <a href="javascript:void(0);" class="easyui-linkbutton" onClick="show_GC_images()" iconCls="icon-graph" plain="true" title="GC % Graph">GC %</a>
             <a href="javascript:void(0);" class="easyui-menubutton" data-options="menu:'#download_menu',iconCls:'icon-download'" plain="true" title="Download Options">Download</a>
             <a href="javascript:void(0);" class="easyui-linkbutton .dv_help" onClick="showHelp()" iconCls="icon-help" plain="true" title="Help">Help</a>
             <div class="update_st_form_container hidden">
@@ -90,6 +91,7 @@
             <a href="javascript:void(0);" id="show_add_column_pane_button" class="easyui-linkbutton" iconCls="icon-eye" plain="true" title="Add or remove columns">View Columns</a>
             <a href="javascript:void(0);" id="show_search_pane_button" class="easyui-linkbutton" iconCls="icon-search" plain="true" title="Search datagrid">Search</a>
             <a href="javascript:void(0);" onClick="javascript:location.reload();" class="easyui-linkbutton" iconCls="icon-reload" plain="true" title="Reload Page">Reload Page</a>
+            <a href="javascript:void(0);" class="easyui-linkbutton" onClick="show_GC_images()" iconCls="icon-graph" plain="true" title="Graph">GC %</a>
             <a href="javascript:void(0);" class="easyui-menubutton" data-options="menu:'#download_menu',iconCls:'icon-download'" plain="true" title="Download Options">Download</a>
             <a href="javascript:void(0);" class="easyui-linkbutton .dv_help" onClick="showHelp()" iconCls="icon-help" plain="true" title="Help">Help</a>
           </div>
@@ -254,7 +256,8 @@
   <script src="http://malsup.github.com/jquery.form.js"></script>
   <script type="text/javascript" src="[% c.request.base %]/static/js/gps.js"></script>
   <script type="text/javascript" src="[% c.request.base %]/static/js/FileSaver.min.js"></script>
-
+  <script type="text/javascript" src="[% c.request.base %]/static/js/jszip.min.js"></script>
+  <script type="text/javascript" src="//stuk.github.io/jszip-utils/dist/jszip-utils.js"></script>
   <script type="text/javascript">
 
     var base_request_url = "[% c.request.base %]", user_role = "[% c.user.gpu_role %]";if(user_role == undefined)user_role = "";var gpsdb_column_2d_array = [% gpsdb_column_2d_array %], user_exists = [% c.user_exists %];
