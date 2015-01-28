@@ -213,6 +213,7 @@
             'data' : JSON.stringify(chArr),
           },
           dataType: 'JSON',
+          beforeSend: block_screen('Saving changes...'),
           success: function(data, textStatus, jqXHR) {
             if(data && data.err) {
               var str = "Error: " + data.err + "<br>Message: " + data.errMsg
@@ -224,10 +225,12 @@
           },
           error: function(xhr, status, error) {
             showMsg('Error: '+ error, 'danger');
+            unblock_screen();
           },
           complete: function(){
             $('#dg').datagrid('reload');
             chArr = [];
+            unblock_screen();
           }
         });
         chArr = [];
@@ -286,7 +289,6 @@
           qdata = {'download_selected': JSON.stringify(arr)};
         }
 
-        showMsg('Downloading data...', 'success')
         export_clicked = true;
         $.ajax({
           url: url,
@@ -294,6 +296,7 @@
           // If not initial loading, then donot pass form objects as user need to download all data
           data: qdata,
           dataType: 'JSON',
+          beforeSend: block_screen('Downloading data... Please wait!'),
           success: function(data) {
             if(data.err) {
               showMsg('Error: '+ data.err, 'danger');
@@ -308,13 +311,18 @@
           error: function(jqXHR, textStatus, errorThrown) {
             showMsg('Error: '+ errorThrown, 'danger');
             export_clicked = false;
+            unblock_screen();
             return false;
+          },
+          complete: function() {
+            unblock_screen();
+            export_clicked = false;
           }
         });
         return false;
       }
       else {
-        showMsg('Export request already initiated. Please wait...');
+        showMsg('Export request already initiated. Please wait!');
       }
     }
 
@@ -462,6 +470,7 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
             'type' : val
           },
           dataType: 'JSON',
+          beforeSend: block_screen('Updating data'),
           success: function(data, textStatus, jqXHR) {
             if(data && data.err) {
               var str = "Error: " + data.err + "<br>Message:" + data.errMsg
@@ -473,10 +482,12 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
           },
           error: function(jqXHR, textStatus, errorThrown) {
             showMsg('Error: '+ errorThrown, 'danger');
+            unblock_screen();
           },
           complete: function(jqXHR, textStatus ){
             $('#dg').datagrid('reload');
             chArr = [];
+            unblock_screen();
           }
         });
         chArr = [];
@@ -984,7 +995,7 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
   function downloadFastq() {
     // http://www.ebi.ac.uk/ena/data/warehouse/filereport?accession=ERS221588&result=read_run&fields=fastq_ftp
     if(download_clicked) {
-      showMsg('A download is in progress... Please wait')
+      showMsg('A download is in progress... Please wait!')
       return;
     }
     // To avoid second click on the link
@@ -1002,10 +1013,9 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
       download_clicked = false;
       return;
     }
-    else {
-      msg = showMsg('Fetching fastq URLs...');
-    }
+
     var url = base_request_url + '/fastq/url/';
+
     $.ajax({
       url: url,
       data: {
@@ -1014,11 +1024,13 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
       },
       type: 'POST',
       dataType: 'json',
+      beforeSend: block_screen('Downloading Fastq'),
       success: function(data, textStatus, jqXHR) {
         if(Object.keys(data).length) {
           var html = createFastqHTMLStr(data)
           $.colorbox({
             html: html,
+            width: '600',
             maxHeight: $('#layout').height() * 0.8,
             maxWidth: $('#layout').width() * 0.8
           });
@@ -1032,11 +1044,13 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
         showMsg('Error: '+ errorThrown, 'danger');
         $('.fastqlink').unbind('click', false);
         download_clicked = false;
+        unblock_screen();
       },
       complete: function(jqXHR, textStatus ){
         $('.fastqlink').unbind('click', false);
         download_clicked = false;
         chArr = [];
+        unblock_screen();
       }
      });
   }
@@ -1089,7 +1103,7 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
 
     $('.update_st_form').ajaxForm({
       resetForm: true,
-      beforeSubmit: st_update_validator,
+      beforeSubmit: function(){st_update_validator(); block_screen('Processing data');},
       success: function(res) {
         var res = JSON.parse(res);
         if(res && res.err) {
@@ -1118,22 +1132,23 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
       complete: function(xhr) {
         $('#dg').datagrid('reload');
         $('.update_st_form_container').slideUp();
+        unblock_screen();
       }
     });
 
   })(); 
   window.onload = function() {
-    setTimeout(function(){document.getElementById('block_screen').style.display = 'none';},100);
+    setTimeout(unblock_screen(),100);
   }
 
 
   function downloadZipFiles(type) {
     if(download_clicked) {
-      showMsg('A download is in progress... please wait')
+      showMsg('A download is in progress... Please wait!')
       return;
     }
     // To avoid second click on the link
-    download_clicked = false;
+    download_clicked = true;
     checkIfDataEdited();
     $('#dg').edatagrid('acceptChanges');
     var chkdArr = $('#dg').datagrid('getChecked');
@@ -1157,12 +1172,6 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
       showMsg('Download not available for the selected samples!');
       download_clicked = false;
       return;
-    }
-    else {
-      msg = showMsg('Fetching data...');
-      if(arr.length >= 100) {
-        showMsg('More number of '+type+' to download. Please wait while we compress the files...')
-      }
     }
     var url = base_request_url + '/download/' + type;
     $.ajax({
@@ -1214,15 +1223,25 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
         }
         download_clicked = false;
       },
+      beforeSend: function(){
+        if(arr.length >= 100) {
+          block_screen('More number of '+type+' to download. Please wait!');
+        }
+        else {
+          block_screen('Downloading ' + type);
+        }
+      },
       error: function(jqXHR, textStatus, errorThrown) {
         showMsg('Error: '+ errorThrown, 'danger');
         $('.fastqlink').unbind('click', false);
         download_clicked = false;
+        unblock_screen();
       },
       complete: function(jqXHR, textStatus ){
         $('.fastqlink').unbind('click', false);
         download_clicked = false;
         chArr = [];
+        unblock_screen();
       }
      });
   }
@@ -1279,11 +1298,10 @@ var gc_img_data = {};
 var gc_clicked = false;
 var show_GC_images = function() {
   if(download_clicked) {
-    showMsg('A request already in progress... please wait')
+    showMsg('A request already in progress... Please wait!')
     return;
   }
   // To avoid second click on the link
-  gc_clicked = false;
   checkIfDataEdited();
   $('#dg').edatagrid('acceptChanges');
   var chkdArr = $('#dg').datagrid('getChecked');
@@ -1302,12 +1320,6 @@ var show_GC_images = function() {
     download_clicked = false;
     return;
   }
-  else {
-    msg = showMsg('Fetching data...');
-    if(arr.length >= 100) {
-      showMsg('Please wait while we retrieve the files...')
-    }
-  }
   var url = base_request_url + '/get_gc_images/';
   $.ajax({
     url: url,
@@ -1317,9 +1329,18 @@ var show_GC_images = function() {
     type: 'POST',
     // processData: false,
     dataType: 'json',
+    beforeSend: function(){
+      if(arr.length >= 100) {
+        block_screen('Processing request...')
+      }
+      else {
+        block_screen('Retrieving GC data');
+      }
+    },
     success: function(data, textStatus, jqXHR) {
       if(Object.keys(data).length <= 0) {
         showMsg('Sorry, GC content data not available for the selected samples.');
+        unblock_screen();
         return;
       }
       gc_img_data = data;
@@ -1343,7 +1364,7 @@ var show_GC_images = function() {
         // close: '<img src="'+base_request_url+'static/images/close.png">'
       });
       // $('#gc_img_container').width($())
-      gc_clicked = true;
+      gc_clicked = false;
 
       xOffset = 10;
       yOffset = 30;
@@ -1369,7 +1390,17 @@ var show_GC_images = function() {
           .css("top",(e.pageY + yOffset) + "px")
           .css("left",(e.pageX - $('#tooltip').width()/2) + "px");
       });     
-
+      gc_clicked = false;
+      unblock_screen();
+    },
+    error: function() {
+      unblock_screen();
+      showMsg('Could not complete your request. Please try again later.')
+      gc_clicked = false;
+    },
+    complete: function() {
+      unblock_screen();
+      gc_clicked = false;
     }
   });
 }
@@ -1385,4 +1416,18 @@ var downloadAllGCImages = function(){
   var content = zip.generate({type:"blob"});
   // see FileSaver.js
   saveAs(content, "GPS_dataviewer_GC_images.zip");
+}
+
+function block_screen(text) {
+  // document.getElementById('block_screen').style.display = 'block';
+  $('#block_screen').show().css('background', 'rgba(51,51,51,0.9');
+  if(text) changeLoadingText(text);
+}
+
+function unblock_screen() {
+  $('#block_screen').hide();
+}
+
+function changeLoadingText(text) {
+  $('#block_screen p').html(text)
 }
