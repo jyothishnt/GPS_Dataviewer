@@ -1,7 +1,6 @@
 package DBConnect::Controller::Root;
 use Moose;
 use namespace::autoclean;
-use Data::Dumper;
 
 BEGIN { extends 'Catalyst::Controller' }
 
@@ -65,6 +64,7 @@ sub auto : Private {
         # Return 0 to cancel 'post-auto' processing and prevent use of application
         return 0;
     }
+
 
     # User found, so return 1 to continue with processing after this 'auto'
     return 1;

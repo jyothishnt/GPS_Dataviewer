@@ -92,8 +92,16 @@
           <div onClick="updataDecision(1)" iconCls="icon-ok" plain="true" title="Include selected">Include</div>
           <div onClick="updataDecision(0)" iconCls="icon-minus" plain="true" title="Exclude selected">Exclude</div>
           <div onClick="javascript:showUpdateSTWindow()" iconCls="icon-edit" plain="true" title="Update ST">Update ST/Serotype</div>
+          <div class="menu-sep"></div>
+          <div data-options="iconCls:'icon-eye'" >
+            <span>Visualize</span>
+            <div>
+              <div onClick="displayChartWindow()" data-options="iconCls:'icon-remove'" plain="true" title="Summary Charts">Summary Charts</div>
+            </div>
+          </div>
         </div>
 
+        <div id="opened_window"></div>
         [% ELSE %]
           <div id="general_tb">
             <a href="javascript:void(0);" id="show_add_column_pane_button" class="easyui-linkbutton" iconCls="icon-eye" plain="true" title="Add or remove columns">View Columns</a>
@@ -177,6 +185,43 @@
     </div>
 
     <div id="msg"></div>
+
+<div id="openModal" class="modalDialog">
+  <div>
+    <a href="#close" title="Close" class="close">X</a>
+    <div id="title"><h2>Modal Box</h2></div>
+    <div id="body">
+      <p> This is a sample modal box that can be created using the powers of CSS3.</p>
+      <p> You could do a lot of things here like have a pop-up ad that shows when your
+          website loads, or create a login/register form for users.</p>
+    </div>
+  </div>
+</div>
+
+    <div id="chartDiv">
+      <div class="colorbox_head center head">Summary - Sample counts </div>
+      <div id="chartContainer">
+        <div id="chartSelect" class="draggable">
+          <ul>
+            <li id="gmd_country">Country</li>
+            <li id="gmd_city">City</li>
+            <li id="grs_in_silico_serotype">In Silico Serotype</li>
+            <li id="grs_in_silico_st">In Silico ST</li>
+            <li id="gmd_seq_type">ST</li>
+            <li id="gmd_institution">Institution</li>
+            <li id="gmd_facility_collected">Facility Collected</li>
+            <li id="gmd_gender">Gender</li>
+            <li id="gmd_col_month">Collection Month</li>
+            <li id="gmd_col_year">Collection Year</li>
+            <li id="gmd_clinical_manifest">Clinical Manifest</li>
+            <li id="gmd_source">Source</li>
+            <li id="gmd_hiv_status">Hiv Status</li>
+          </ul>
+        </div>
+        <div id="chartDisplayContainer">
+        </div>
+      </div>
+    </div>
 
 
     <div class="help_container">
@@ -265,7 +310,7 @@
   <script type="text/javascript" src="[% c.request.base %]/static/js/gps.js"></script>
   <script type="text/javascript" src="[% c.request.base %]/static/js/FileSaver.min.js"></script>
   <script type="text/javascript" src="[% c.request.base %]/static/js/jszip.min.js"></script>
-  <script type="text/javascript" src="//stuk.github.io/jszip-utils/dist/jszip-utils.js"></script>
+  <script type="text/javascript" src="[% c.request.base %]/static/js/canvasjs.min.js"></script>
   <script type="text/javascript">
 
     var base_request_url = "[% c.request.base %]", user_role = "[% c.user.gpu_role %]";if(user_role == undefined)user_role = "";var gpsdb_column_2d_array = [% gpsdb_column_2d_array %], user_exists = [% c.user_exists %];

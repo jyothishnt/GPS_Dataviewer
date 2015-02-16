@@ -41,42 +41,6 @@ our $VERSION = '0.01';
 # details given here can function as a default configuration,
 # with an external configuration file acting as an override for
 # local deployment.
-=head
-__PACKAGE__->config( 'Plugin::Authentication' =>
-                {
-                    default => {
-                        credential => {
-                            class => 'Password',
-                            password_field => 'password',
-                            password_type => 'clear'
-                        },
-                        store => {
-                            class => 'Minimal',
-                            users => {
-                                jb39 => {
-                                    password => "123",
-                                    role => "admin",
-                                    active => 1,
-                                    name => 'Jyo'
-                                },
-                                rg9 => {
-                                    password => "rg9_pass",
-                                    role => "admin",
-                                    active => 1,
-                                    name => 'Becca'
-                                },
-                                sdb => {
-                                    password => "sdb_pass",
-                                    role => "user",
-                                    active => 1,
-                                    name => 'Ste'
-                                }
-                            }
-                        }
-                    }
-                }
-    );
-=cut
 # Using Database info for user authentication
 __PACKAGE__->config( 'Plugin::Authentication' =>
                     {
@@ -94,7 +58,7 @@ __PACKAGE__->config( 'Plugin::Authentication' =>
                         }
                     }
     );
-
+# __PACKAGE__->config('Plugin::Session' => { expires => 2 }); # "forever"
 # Start the application
 __PACKAGE__->setup();
 

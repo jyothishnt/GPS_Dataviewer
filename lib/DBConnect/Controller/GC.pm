@@ -26,6 +26,7 @@ Catalyst Controller.
 # Assembly/Annotation file download
 sub getGCimages :Path('/get_gc_images') {
   my ( $self, $c, @args ) = @_;
+
   # Get post data
   my $postData = $c->request->body_data;
   # Logging

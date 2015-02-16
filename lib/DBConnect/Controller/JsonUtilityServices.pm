@@ -142,6 +142,68 @@ sub getCoordinates :Path('/json/coordinates/') {
   }
 }
 
+# Get json - column + count (Same as the function getSampleCount() in this package, 
+# but to make it authorised access, we are removing 'json/' form the url)
+# This function takes a column name in gps_metadata column and 
+# generates a json with its disticnt column values and no. of entries
+sub getSampleCountAuthorised :Path('/count/meta/') {
+  my ( $self, $c, @args ) = @_;
+  my $map = [];
+  if(scalar @args > 0) {
+    # Get the column name
+    my $colname_search = $args[0];
+    # Reconnect to db if connection available
+    if(!$c->config->{gps_dbh}->ping) {
+      my $attr = {
+          mysql_auto_reconnect => $c->config->{mysql_auto_reconnect},
+          AutoCommit => $c->config->{AutoCommit}
+      };
+      $c->log->warn("Re-connected @ getSampleCountAuthorised() ".$c->config->{dsn});
+      my $dbh = DBI->connect($c->config->{dsn},$c->config->{user},$c->config->{password}, $attr);
+      $c->config->{gps_dbh} = $dbh;
+    }
+    
+    my $prefix = ($colname_search =~ /^gmd/)? 'M': (($colname_search =~ /^gsd/)? 'S': (($colname_search =~ /^gss/)? 'SC':'R'));
+    
+    my $q = qq {
+      SELECT 
+        $prefix.$colname_search, 
+        count($prefix.$colname_search) as $colname_search\_count
+      FROM gps_sequence_scape S, gps_metadata M, gps_results R
+      WHERE M.gmd_public_name = S.gss_public_name
+      AND S.gss_sanger_id = R.grs_sanger_id 
+      AND R.grs_lane_id = S.gss_lane_id 
+      AND R.grs_decision<>0
+      AND $prefix.$colname_search IS NOT NULL
+      AND $prefix.$colname_search <> ""
+      GROUP BY $colname_search;
+    };
+
+    my $sth = $c->config->{gps_dbh}->prepare($q);
+    $sth->execute;
+    # Create a resultset with a groupby clause
+    if($sth->rows > 0) {
+      my $t_map = {};
+      while(my $row = $sth->fetchrow_hashref) {
+        # Creating a hash of column value and count
+        $t_map = {};
+        $t_map->{$row->{$colname_search}}->{sample_count} = $row->{$colname_search.'_count'};
+        push @{$map}, $t_map;
+      }
+      # Send back json
+      $c->res->body(to_json($map));
+    }
+    else {
+      # If no column found then show the 404 template
+      $c->res->body('Column name not found');      
+    }
+  }
+  else {
+    # If no arguments then show the 404 template
+    $c->res->body('Column name argument missing');
+  }
+}
+
 =encoding utf8
 
 =head1 AUTHOR

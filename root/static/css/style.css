@@ -23,7 +23,7 @@ dd {width: 100%; padding: 5px 0 5px 10px;background:rgba(0, 0, 0, 0.14); float:l
     top: 0;
     width: 100%;
     text-align: center;
-    z-index: 9999;
+    z-index: 99999999;
 }
 div.pagecenter {
 	position: relative;
@@ -565,62 +565,6 @@ animation-delay:0.65s;
 animation-delay:0.78s;
 }
 
-#fountainTextG_4{
--moz-animation-delay:0.91s;
--webkit-animation-delay:0.91s;
--ms-animation-delay:0.91s;
--o-animation-delay:0.91s;
-animation-delay:0.91s;
-}
-
-#fountainTextG_5{
--moz-animation-delay:1.04s;
--webkit-animation-delay:1.04s;
--ms-animation-delay:1.04s;
--o-animation-delay:1.04s;
-animation-delay:1.04s;
-}
-
-#fountainTextG_6{
--moz-animation-delay:1.17s;
--webkit-animation-delay:1.17s;
--ms-animation-delay:1.17s;
--o-animation-delay:1.17s;
-animation-delay:1.17s;
-}
-
-#fountainTextG_7{
--moz-animation-delay:1.3s;
--webkit-animation-delay:1.3s;
--ms-animation-delay:1.3s;
--o-animation-delay:1.3s;
-animation-delay:1.3s;
-}
-
-#fountainTextG_8{
--moz-animation-delay:1.43s;
--webkit-animation-delay:1.43s;
--ms-animation-delay:1.43s;
--o-animation-delay:1.43s;
-animation-delay:1.43s;
-}
-
-#fountainTextG_9{
--moz-animation-delay:1.56s;
--webkit-animation-delay:1.56s;
--ms-animation-delay:1.56s;
--o-animation-delay:1.56s;
-animation-delay:1.56s;
-}
-
-#fountainTextG_10{
--moz-animation-delay:1.69s;
--webkit-animation-delay:1.69s;
--ms-animation-delay:1.69s;
--o-animation-delay:1.69s;
-animation-delay:1.69s;
-}
-
 @-moz-keyframes bounce_fountainTextG{
 0%{
 -moz-transform:scale(1);
@@ -685,3 +629,82 @@ color:#ffffff;
 }
 
 }
+
+/********** For chart display **************/
+#chartDiv {
+	display: none;
+}
+#chartSelect {
+	width: 200px;
+	float: left;
+}
+#chartDisplayContainer {
+	position: absolute;
+	left: 200px;
+	overflow: auto;
+}
+div#chartDisplayDiv {
+  border: 1px solid #eee;
+  margin: 10px;
+  padding: 5px;
+  width: 300px;
+  float: left;
+  text-align: center;
+}
+#opened_window {
+	/*display: none;*/
+}
+
+.modalDialog {
+	position: fixed;
+	font-family: Arial, Helvetica, sans-serif;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	background: rgba(0,0,0,0.8);
+	z-index: 99999;
+	opacity:0;
+	-webkit-transition: opacity 400ms ease-in;
+	-moz-transition: opacity 400ms ease-in;
+	transition: opacity 400ms ease-in;
+	pointer-events: none;
+}
+
+.modalDialog:target {
+	opacity:1;
+	pointer-events: auto;
+}
+
+.modalDialog > div {
+	width: 400px;
+	position: relative;
+	margin: 10% auto;
+	padding: 5px 20px 13px 20px;
+	border-radius: 10px;
+	background: #fff;
+	background: -moz-linear-gradient(#fff, #999);
+	background: -webkit-linear-gradient(#fff, #999);
+	background: -o-linear-gradient(#fff, #999);
+}
+
+.close {
+	background: #606061;
+	color: #FFFFFF;
+	line-height: 25px;
+	position: absolute;
+	right: -12px;
+	text-align: center;
+	top: -10px;
+	width: 24px;
+	text-decoration: none;
+	font-weight: bold;
+	-webkit-border-radius: 12px;
+	-moz-border-radius: 12px;
+	border-radius: 12px;
+	-moz-box-shadow: 1px 1px 3px #000;
+	-webkit-box-shadow: 1px 1px 3px #000;
+	box-shadow: 1px 1px 3px #000;
+}
+
+.close:hover { background: #00d9ff; }

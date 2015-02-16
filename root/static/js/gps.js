@@ -71,8 +71,8 @@
         rownumbers: (user_role == "admin")? false: false,
         onLoadError:function(err){
             showColorbox({
-                str : 'Error occured while fetching data from the server!',
-                title: 'Error!'
+                str : 'Could not connect to server! Please login again.',
+                title: 'TimeOut!'
             });
         },
         onLoadSuccess:function(data){
@@ -241,89 +241,77 @@
       Export data as CSV/XML based on row selected/ search / none=download all
     */
     var init = true;
-    var export_clicked = false;
     var exportData = function(extn) {
-      if(!export_clicked) {
+      // Get selected columns if any
+      var chkdArr = $('#dg').datagrid('getChecked');
+      var qdata = {};
+      var url = '';
 
-        // Get selected columns if any
-        var chkdArr = $('#dg').datagrid('getChecked');
-        var qdata = {};
-        var url = '';
-
-        // Creating the query string to be passed via POST
-        // If row selected
-        if(chkdArr.length <= 0) {
-          if(dg_searched) {
-            var inpObj = $('.niceform').serializeObject();
-            qdata = {'data': JSON.stringify(inpObj)};
-          }
-          else {
-            qdata = "";
-          }
-          url = base_request_url + '/gps/json/download';
+      // Creating the query string to be passed via POST
+      // If row selected
+      if(chkdArr.length <= 0) {
+        if(dg_searched) {
+          var inpObj = $('.niceform').serializeObject();
+          qdata = {'data': JSON.stringify(inpObj)};
         }
         else {
-          url = base_request_url + '/gps/json/download_selected';
-          var arr = new Array();
-          // Decision flag is used to check if the selected row has been excluded or not. Excluded data are not given for download
-          // Currently allowing all download. So below statement is set to false
-          var all_decision_0 = false;
-          jQuery.each(chkdArr, function(ind, row) {
-            // if(row.grs_decision != 0){
-            //   all_decision_0 = false;
-            // }
-            var t = {};
-            t['gss_sanger_id'] = row.gss_sanger_id;
-            arr.push(t);
-          })
-          if(all_decision_0) {
-            showMsg('Samples you have selected are categorized as not good and thus not available for download!');
-            return;
-          }
-
-          if(arr.length <= 0) {
-            showMsg('Please select your data to download!');
-            return;
-          }
-          // Create query string
-          qdata = {'download_selected': JSON.stringify(arr)};
+          qdata = "";
         }
-
-        export_clicked = true;
-        $.ajax({
-          url: url,
-          type: 'POST',
-          // If not initial loading, then donot pass form objects as user need to download all data
-          data: qdata,
-          dataType: 'JSON',
-          beforeSend: block_screen('Downloading data... Please wait!'),
-          success: function(data) {
-            if(data.err) {
-              showMsg('Error: '+ data.err, 'danger');
-              export_clicked = false;
-              return false;
-            }
-            (extn == "xml")?JSONtoXML(data):JSONtoCSV(data);
-            fl = 'search';
-            export_clicked = false;
-            return false;
-          },
-          error: function(jqXHR, textStatus, errorThrown) {
-            showMsg('Error: '+ errorThrown, 'danger');
-            export_clicked = false;
-            unblock_screen();
-            return false;
-          },
-          complete: function() {
-            unblock_screen();
-            export_clicked = false;
-          }
-        });
-        return false;
+        url = base_request_url + '/gps/json/download';
       }
       else {
-        showMsg('Export request already initiated. Please wait!');
+        url = base_request_url + '/gps/json/download_selected';
+        var arr = new Array();
+        // Decision flag is used to check if the selected row has been excluded or not. Excluded data are not given for download
+        // Currently allowing all download. So below statement is set to false
+        var all_decision_0 = false;
+        jQuery.each(chkdArr, function(ind, row) {
+          // if(row.grs_decision != 0){
+          //   all_decision_0 = false;
+          // }
+          var t = {};
+          t['gss_sanger_id'] = row.gss_sanger_id;
+          arr.push(t);
+        })
+        if(all_decision_0) {
+          showMsg('Samples you have selected are categorized as not good and thus not available for download!');
+          return;
+        }
+
+        if(arr.length <= 0) {
+          showMsg('Please select your data to download!');
+          return;
+        }
+        // Create query string
+        qdata = {'download_selected': JSON.stringify(arr)};
       }
+
+      $.ajax({
+        url: url,
+        type: 'POST',
+        // If not initial loading, then donot pass form objects as user need to download all data
+        data: qdata,
+        dataType: 'JSON',
+        beforeSend: block_screen('Downloading data... Please wait!'),
+        success: function(data) {
+          if(data.err) {
+            showMsg('Error: '+ data.err, 'danger');
+            return false;
+          }
+          (extn == "xml")?JSONtoXML(data):JSONtoCSV(data);
+          fl = 'search';
+          return false;
+        },
+        error: function(jqXHR, textStatus, errorThrown) {
+          showMsg('Error: '+ errorThrown, 'danger');
+          unblock_screen();
+          return false;
+        },
+        complete: function() {
+          unblock_screen();
+        }
+      });
+      return false;
     }
 
 
@@ -499,11 +487,15 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
       $.each(gpsdb_column_2d_array, function(k,v) {
         html_str += '<optgroup label="----------------------">';
         $.each(gpsdb_column_2d_array[k], function(index, value) {
-          html_str += '<option value='+ value +'>' + value.slice(4).replace(/_/g,' ') + '</option>';
+          html_str += '<option value='+ value +'>' + sliced_column(value) + '</option>';
         });
       })
       html_str += '</optgroup>';
       return html_str;
+    }
+
+    function sliced_column(column_name) {
+      return column_name.slice(4).replace(/_/g,' ');
     }
 
     var gpsdb_column_2d_array = new Object();
@@ -608,7 +600,7 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
     {
       var t = {};
       t['field'] = column_name;
-      t['title'] = column_name.slice(4).replace(/_/g,' ');
+      t['title'] = sliced_column(column_name);
       t['width'] = 115;
       t['sortable'] = true;
       t['hidden'] = true;
@@ -692,64 +684,8 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
     $(ele).next('form').slideToggle('slow');
   }
 
-/*
-  var drag_col_selected = new Array();
-
   $(document).ready(function(){
-    $('.item').click(function () {
-      if($(this).hasClass('col_selected')) {
-        var idx = drag_col_selected.indexOf(this.id);
-        if (idx != -1) {
-          drag_col_selected.splice(idx, 1); // The second parameter is the number of elements to remove.
-          $(this).addClass('col_selected');
-          $(this).css('background', '#eee');
-          return false;
-        }
-      }
-
-      $(this).addClass('col_selected');
-      drag_col_selected.push(this.id);
-      $(this).css('background', '#c6dcff');
-      return false;
-    });
-    $('.item').draggable({
-        revert:true,
-        proxy:function(source){
-            var n = $('<div class="proxy"></div>');
-            n.html($(source).html()).addClass('drag').appendTo('body').hide(150);
-            return n;
-        },
-        onStartDrag:function(){
-            $(this).draggable('options').cursor = 'not-allowed';
-            $(this).draggable('proxy').css('z-index',15);
-            // For enabling click event select. Hide here and show on onDrag
-            $(this).draggable('proxy').hide();
-        },
-        onDrag: function(){
-           $(this).draggable('proxy').show();
-        },
-        onStopDrag:function(){
-            $(this).draggable('options').cursor='move';
-        },
-        onBeforeDrag:function(event){
-        }
-    });
-    $('.drop-div').droppable({
-        onDragEnter:function(e,source){
-            $(source).draggable('options').cursor='auto';
-        },
-        onDragLeave:function(e,source){
-            $(source).draggable('options').cursor='not-allowed';
-        },
-        onDrop:function(e,source){
-            addColumn(source.id,true);
-        }
-    });
-  })
-*/
-
-  $(document).ready(function(){
-    $('.item').click(function () {
+    $('.draggable li.item').click(function () {
       // Based on class assignment, find out of it has 
       if(!$(this).hasClass('add_border')) {
         $('#dg').datagrid('showColumn',this.id);
@@ -769,7 +705,7 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
     $('.showAll').click(function () {
       $.each(dgcolumns, function(ind, val) {
         $('#dg').datagrid('showColumn',val.field);
-        $('.item').addClass('add_border');
+        $('.draggable li.item').addClass('add_border');
         // Making datagrid column field visible
         change_dgcolumns_hidden_property(val.field, true);
       });
@@ -778,7 +714,7 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
       $.each(dgcolumns, function(ind, val) {
         if(val.field != 'ck') {
           $('#dg').datagrid('hideColumn',val.field);
-          $('.item').removeClass('add_border');
+          $('.draggable li.item').removeClass('add_border');
           // Making datagrid column field visible
           change_dgcolumns_hidden_property(val.field, false);
         }
@@ -794,63 +730,6 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
     })    
   }
 
-
-/*
-
-  // Adding = show column in the datagrid
-  function addColumn(id, add_fl) {
-    var col_arr = new Array();
-    // If single column drag, then convert it to an array and then go forward
-    if(typeof id == "string") {
-      col_arr.push(id);
-    }
-    else {
-      col_arr = id;
-    }
-    var flag = 0;
-    var reload_needed = false;
-    for(var i=0; i<col_arr.length; i++) {
-      if(add_fl) {
-        $('#dg').datagrid('showColumn', col_arr[i]);
-      }
-      else {
-        $('#dg').datagrid('hideColumn', col_arr[i]);
-      }
-
-      $.each(dgcolumns, function(ind, val) {
-        if(val.field == col_arr[i]) {
-          val.hidden = (add_fl)?false:true;
-        }
-      })
-    }
-    */
-/*
-    // Reload datagrid if necessary
-    if(reload_needed) {
-      var dg = $('#dg');
-
-      console.log(loadedData);
-      dg.datagrid('showColumn', );
-      //dg.datagrid('loadData', loadedData);
-    }
-*/
-    // Change background color of the selected columns
-    // changeBackgroundSelected();
-
-    // Unload the array
-    // drag_col_selected = [];
-  // }
-/*
-  // Handle multiple select
-  $(document).ready(function(){
-    $('.add_selected').click(function(){
-        addColumn(drag_col_selected, true);
-    });    
-    $('.remove_selected').click(function(){
-        addColumn(drag_col_selected, false);
-    });
-  });
-*/
   function changeBackgroundSelected() {
     var col_arr = document.getElementsByClassName("item");
     var dg_col_opt;
@@ -868,7 +747,7 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
   }
 
   function load_div_dgcolumns() {
-    $('.draggable').html('<ul></ul>');
+    $('#drag').html('<ul></ul>');
     var li;
 
     //var cbox = $("<input>",{name: "add_col_cbox"})
@@ -886,7 +765,7 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
         }
 
         // Inserting checkbox for multiple selection
-        $('.draggable ul').append(li);
+        $('#drag ul').append(li);
       }
     });
   }
@@ -990,17 +869,8 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
     })
   }
 
-  var download_clicked = false;
-
   function downloadFastq() {
     // http://www.ebi.ac.uk/ena/data/warehouse/filereport?accession=ERS221588&result=read_run&fields=fastq_ftp
-    if(download_clicked) {
-      showMsg('A download is in progress... Please wait!')
-      return;
-    }
-    // To avoid second click on the link
-    download_clicked = true;
-    checkIfDataEdited();
     $('#dg').edatagrid('acceptChanges');
     var chkdArr = $('#dg').datagrid('getChecked');
     var arr = new Array();
@@ -1010,7 +880,6 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
     var msg;
     if(arr.length <= 0) {
       showMsg('Please select a sample!');
-      download_clicked = false;
       return;
     }
 
@@ -1038,17 +907,14 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
         else {
           showMsg('Fastq not available!')
         }
-        download_clicked = false;
       },
       error: function(jqXHR, textStatus, errorThrown) {
         showMsg('Error: '+ errorThrown, 'danger');
         $('.fastqlink').unbind('click', false);
-        download_clicked = false;
         unblock_screen();
       },
       complete: function(jqXHR, textStatus ){
         $('.fastqlink').unbind('click', false);
-        download_clicked = false;
         chArr = [];
         unblock_screen();
       }
@@ -1143,12 +1009,6 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
 
 
   function downloadZipFiles(type) {
-    if(download_clicked) {
-      showMsg('A download is in progress... Please wait!')
-      return;
-    }
-    // To avoid second click on the link
-    download_clicked = true;
     checkIfDataEdited();
     $('#dg').edatagrid('acceptChanges');
     var chkdArr = $('#dg').datagrid('getChecked');
@@ -1164,13 +1024,11 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
     if(chkdArr.length <= 0) {
       // No selection made
       showMsg('Please select a sample!');
-      download_clicked = false;
       return;
     }
     else if(arr.length <= 0) {
       // Lane id not found
       showMsg('Download not available for the selected samples!');
-      download_clicked = false;
       return;
     }
     var url = base_request_url + '/download/' + type;
@@ -1221,7 +1079,6 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
         else if(data['err']) {
           showMsg(data['err']||'Error occured!', 'danger')
         }
-        download_clicked = false;
       },
       beforeSend: function(){
         if(arr.length >= 100) {
@@ -1234,12 +1091,10 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
       error: function(jqXHR, textStatus, errorThrown) {
         showMsg('Error: '+ errorThrown, 'danger');
         $('.fastqlink').unbind('click', false);
-        download_clicked = false;
         unblock_screen();
       },
       complete: function(jqXHR, textStatus ){
         $('.fastqlink').unbind('click', false);
-        download_clicked = false;
         chArr = [];
         unblock_screen();
       }
@@ -1294,16 +1149,10 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
     });
 
   }
+
+/************************   GC IMAGES Section    ********************************/  
 var gc_img_data = {};
-var gc_clicked = false;
 var show_GC_images = function() {
-  if(download_clicked) {
-    showMsg('A request already in progress... Please wait!')
-    return;
-  }
-  // To avoid second click on the link
-  checkIfDataEdited();
-  $('#dg').edatagrid('acceptChanges');
   var chkdArr = $('#dg').datagrid('getChecked');
   var arr = new Array();
   $.each(chkdArr, function(ind, row) {
@@ -1317,7 +1166,6 @@ var show_GC_images = function() {
   if(chkdArr.length <= 0 || arr.length <=0) {
     // No selection made
     showMsg('Please select a sample with a lane id!');
-    download_clicked = false;
     return;
   }
   var url = base_request_url + '/get_gc_images/';
@@ -1327,7 +1175,6 @@ var show_GC_images = function() {
       'lane_ids' : arr,
     },
     type: 'POST',
-    // processData: false,
     dataType: 'json',
     beforeSend: function(){
       if(arr.length >= 100) {
@@ -1364,7 +1211,6 @@ var show_GC_images = function() {
         // close: '<img src="'+base_request_url+'static/images/close.png">'
       });
       // $('#gc_img_container').width($())
-      gc_clicked = false;
 
       xOffset = 10;
       yOffset = 30;
@@ -1390,17 +1236,14 @@ var show_GC_images = function() {
           .css("top",(e.pageY + yOffset) + "px")
           .css("left",(e.pageX - $('#tooltip').width()/2) + "px");
       });     
-      gc_clicked = false;
       unblock_screen();
     },
     error: function() {
       unblock_screen();
       showMsg('Could not complete your request. Please try again later.')
-      gc_clicked = false;
     },
     complete: function() {
       unblock_screen();
-      gc_clicked = false;
     }
   });
 }
@@ -1418,6 +1261,8 @@ var downloadAllGCImages = function(){
   saveAs(content, "GPS_dataviewer_GC_images.zip");
 }
 
+/**************************   BLOCK SCREEN FOR PROCESSING   ******************************/
+
 function block_screen(text) {
   // document.getElementById('block_screen').style.display = 'block';
   $('#block_screen').show().css('background', 'rgba(51,51,51,0.9');
@@ -1431,3 +1276,180 @@ function unblock_screen() {
 function changeLoadingText(text) {
   $('#block_screen p').html(text)
 }
+
+/************************   CHART SECTION    ********************************/
+
+function displayChartWindow() {
+  var html = '';
+  var div_max_height = $('#layout').height() * 0.95;
+  var key = 'Chart_Window';
+
+  if(opened_window[key] != undefined) {
+    var open_ele = opened_window[key]['div'];
+    console.log($('#chartDiv'))
+    $.colorbox({
+      html: open_ele,
+      width: $('#layout').width(),
+      height: div_max_height
+    })
+    $('#chartDiv').show();
+    return;
+  }
+  $('#chartDisplayContainer').css('height', div_max_height);
+  var ele = $('#chartDiv');
+  console.log(ele)
+  $.colorbox({
+    html: ele,
+    width: $('#layout').width() * 1,
+    height: div_max_height, // 80% of the layout height and width
+    // close: '<img src="'+base_request_url+'static/images/close.png">'
+    onClosed: function(){
+      createWindow('Chart_Window',ele);
+    }
+  });
+
+  $('#chartDiv').show();
+}
+
+// Create a window list to store all opened model windows. So that you can get back to it when you need.
+var opened_window = {};
+
+function createWindow(key, element) {
+  if(opened_window[key] == undefined)
+    addToWindowMenu(key);
+  var hash = {};
+  hash['div'] = element;
+
+  opened_window[key] = hash;
+  // Add/ append only if it is a new window
+}
+
+function addToWindowMenu(key){
+  if($('#window').length <= 0) {
+    // Create window menu
+    var anchor = document.createElement('a');
+    anchor.id="window";
+    anchor.innerHTML = 'Window';
+    $('#tb').append(anchor)
+  }
+  var div = document.createElement('div');
+  div.setAttribute('plain', true);
+  $(div).on('click', function(){
+    var open_ele = opened_window[key]['div'];
+    console.log(open_ele)
+    $.colorbox({
+      html: open_ele,
+      width: $('#layout').width(),
+      height: $('#layout').height()
+    })
+  });
+  div.innerHTML = key;
+  $('#opened_window').append(div).show();
+
+  $('#window').menubutton({
+    iconCls: 'icon-eye',
+    menu: '#opened_window'
+  });
+}
+
+$(document).ready(function(){
+  $(document).on('click','#chartSelect li', {} ,function(e){
+    var column = this.id
+    // New chart id for the dynamic div
+    var chart_id = 'chart_'+ column;
+
+    var ele = this;
+    if(!$(this).hasClass('add_border')) {
+      $(this).addClass('add_border');
+    }
+    else {
+      // Remove the chart
+      $('#'+chart_id).parent().remove();
+      $(this).removeClass('add_border');
+      return;
+    }
+
+    // Get the data count for the column given
+    $.ajax({
+      url: base_request_url + '/count/meta/' + column,
+      type: 'GET',
+      dataType: 'json',
+      beforeSend: block_screen('Fetching data...'),
+      success: function(data, textStatus, jqXHR) {
+        if(Object.keys(data).length) {
+          var chart_div = document.createElement('div');
+          chart_div.id = 'chartDisplayDiv';
+          $('#chartDisplayContainer').append(chart_div);
+
+          var chart = document.createElement('div');
+          chart.id = chart_id;
+          chart.style.width = '300px';
+          chart.style.height = '300px';
+          
+          if(column == 'gmd_gender') {
+            // chart.style.position = 'relative';
+            chart.style.float = 'left';
+          }
+          $(chart_div).append(chart);
+
+          var chartData = formatForChartData(data);
+          if(chartData.length > 0) {
+            renderChart(chart.id, 'pie', sliced_column(column), chartData);
+            $.colorbox('height', $('#chartDisplayContainer').height());
+          }
+          $(ele).addClass('add_border');
+        }
+        else {
+          return {};
+        }
+      },
+      error: function(jqXHR, textStatus, errorThrown) {
+        showMsg('Error: '+ errorThrown, 'danger');
+        unblock_screen();
+      },
+      complete: function(jqXHR, textStatus ){
+        chArr = [];
+        unblock_screen();
+      }
+    });
+  })
+})
+
+function formatForChartData(data) {
+  // Create the chart data format for CanvasJS library
+  var chartData = new Array;
+  for (var i in data) {
+    for (var k in data[i]) {
+      var t = {}
+      var legendText = '<div><span style="font-weight:bold;">'+k+'</span>: <span>'+data[i][k]['sample_count']+'</span></div>';
+      t['y'] = data[i][k]['sample_count'];
+      t['legendText'] = 'Sample Count';
+      t['indexLabel'] = k;
+      chartData.push(t);
+    }
+  }
+  return chartData;
+}
+// Function to render chart in a given chart container
+function renderChart(chart_div_id, chart_type, title, chartData) {
+  var chart = new CanvasJS.Chart(chart_div_id,
+  {
+    title:{
+      text: title
+    },
+    exportEnabled: true,
+    exportFileName: chart_div_id,
+    // zoomEnabled: true,
+    data: [
+      {
+         type: chart_type,
+         // showInLegend: true,
+         toolTipContent: title+ ': <strong>{indexLabel}<br></strong>no. of samples: <strong>{y}</strong>',
+         dataPoints: chartData,
+      }
+    ]
+  });
+
+  chart.render();
+}
+
