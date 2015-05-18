@@ -111,6 +111,14 @@ __PACKAGE__->add_columns(
   },,
   "grs_dbupdate_comments",
   { data_type => "text", is_nullable => 1 },
+  "grs_baps_1",
+  { data_type => "integer", is_nullable => 1 },
+  "grs_baps_2",
+  { data_type => "integer", is_nullable => 1 },
+  "grs_vaccine_status",
+  { data_type => "text", is_nullable => 1 },
+  "grs_vaccine_period",
+  { data_type => "text", is_nullable => 1 },
 );
 
 
