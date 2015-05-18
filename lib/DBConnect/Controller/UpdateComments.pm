@@ -33,14 +33,19 @@ sub createSqlString {
 
   foreach my $row (@{$postData}) {
     for my $k (keys %$row) {
-      if(defined $row->{$k} && $row->{$k} ne "") {
+      if(defined $row->{$k}) {
         if($k ne "gss_lane_id" && $k ne "gss_sanger_id") {
-          push(@$strArr, qq{ $k = "$row->{$k}" });
+          if ($row->{$k} eq "") {
+            push(@$strArr, qq{ $k = NULL });
+          }
+          else {
+            push(@$strArr, qq{ $k = "$row->{$k}" });
+          }
         }
-        elsif ($k eq "gss_lane_id") {
+        elsif ($k eq "gss_lane_id" && $row->{$k} ne "") {
           push(@$conditionStrArr, qq{ grs_lane_id = "$row->{$k}" });
         }
-        elsif ($k eq "gss_sanger_id") {
+        elsif ($k eq "gss_sanger_id" && $row->{$k} ne "") {
           push(@$conditionStrArr, qq{ grs_sanger_id = "$row->{$k}" });
         }
       }
