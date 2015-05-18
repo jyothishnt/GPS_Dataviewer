@@ -22,6 +22,36 @@ Catalyst Controller.
 =head2 index
 
 =cut
+# Create sql in-string
+sub createSqlString {
+  my $postData = shift;
+  my $strArr = ();
+  my $conditionStrArr = ();
+
+  my $qstring;
+  my $final_query = "UPDATE gps_results SET";
+
+  foreach my $row (@{$postData}) {
+    for my $k (keys %$row) {
+      if(defined $row->{$k} && $row->{$k} ne "") {
+        if($k ne "gss_lane_id" && $k ne "gss_sanger_id") {
+          push(@$strArr, qq{ $k = "$row->{$k}" });
+        }
+        elsif ($k eq "gss_lane_id") {
+          push(@$conditionStrArr, qq{ grs_lane_id = "$row->{$k}" });
+        }
+        elsif ($k eq "gss_sanger_id") {
+          push(@$conditionStrArr, qq{ grs_sanger_id = "$row->{$k}" });
+        }
+      }
+    }
+  }
+
+  $final_query .= join(',', @$strArr);
+  $final_query .= ' WHERE ' . join(' AND ', @$conditionStrArr) . ' ';
+
+  return $final_query;
+}
 
 # Update comments in the GPS database
 sub updateComments : Path('/gps/update/comments') {
@@ -40,6 +70,12 @@ sub updateComments : Path('/gps/update/comments') {
   my $q;
   my $sth;
   my $now;
+
+  use Data::Dumper;
+
+  # Create quesry in-string to inject into the mysql query string
+  my $qstring = createSqlString($postData);
+
   foreach my $row (@{$postData}) {
     try {
       #print Dumper $rs;
@@ -47,49 +83,23 @@ sub updateComments : Path('/gps/update/comments') {
       # get them using sanger id.
       if(defined $row->{gss_lane_id} && defined $row->{gss_sanger_id}) {
         $rs = $schema->search({'grs_lane_id' => $row->{gss_lane_id}});
-        if($rs->count) {                    
-
-          # Storing insilico st and serotype for updating
-          my $in_st = ($row->{grs_in_silico_st})? $row->{grs_in_silico_st} : "";
-          my $in_stype = ($row->{grs_in_silico_serotype})? $row->{grs_in_silico_serotype} : "";
-          $q = qq{UPDATE gps_results SET grs_comments = ?, grs_in_silico_st = ?, grs_in_silico_serotype = ?, grs_updated_on = now() WHERE grs_sanger_id = ? AND grs_lane_id = ?};
-          $sth = $c->config->{gps_dbh}->prepare($q) or die "Could not save! Error while preparing query - $!";
-          $sth->execute($row->{grs_comments}, $in_st, $in_stype, $row->{gss_sanger_id}, $row->{gss_lane_id}) or die "Could not save! Error while executing query - $!"; 
-        }        
-        else {
-          $res = {'err' => 'Error occured while saving', 'errMsg' => qq{Lane ID not found in the database}};
-          $c->res->body(to_json($res));
-        }
       }
       elsif(defined $row->{gss_sanger_id}) {
         $rs = $schema->search({ 'grs_sanger_id' => $row->{gss_sanger_id}});
-        if($rs->count) {
-          my $in_st = ($row->{grs_in_silico_st})? $row->{grs_in_silico_st} : "";
-          my $in_stype = ($row->{grs_in_silico_serotype})? $row->{grs_in_silico_serotype} : "";
-          $q = qq{UPDATE gps_results SET grs_comments = ?, grs_in_silico_st = ?, grs_in_silico_serotype = ?, grs_updated_on = now() WHERE grs_sanger_id = ? AND grs_lane_id IS NULL};
-          $sth = $c->config->{gps_dbh}->prepare($q) or die "Could not save! Error while preparing query - $!";
-          $sth->execute($row->{grs_comments}, $in_st, $in_stype, $row->{gss_sanger_id}) or die "Could not save! Error while executing query - $!";
-        }
-        else {
-          # if lane and sample not found, then create a new row.
-          # Ideally this should not happen as there should be atleast a sanger id for a row.
-          # And we are also updating the QC decision table with newly added sample and lanes 
-          # when we update the sequencing pipeline table.
-          #$now = strftime "%Y-%m-%d %H:%M:%S", localtime;
-          #$schema->create({
-          #  'grs_sanger_id' => $row->{gss_sanger_id},
-          #  'grs_lane_id' => $row->{gss_lane_id},
-          #  'grs_comments' => $row->{grs_comments},
-          #  'grs_updated_on' => $now
-          #});
-          $res = {'err' => 'Error occured while saving', 'errMsg' => qq{Sanger ID not found in the database}};
-          $c->res->body(to_json($res));
-        }
       }
       else {
-        $res = {'err' => 'Error occured while saving', 'errMsg' => qq{Sanger ID and Lane ID not found in the database}};
+        $res = {'err' => 'Error occured while saving', 'errMsg' => qq{Sanger ID or Lane ID missing. Could not update!}};
         $c->res->body(to_json($res));
       }
+
+      if($rs->count) {
+        $c->config->{gps_dbh}->do($qstring) or die "Could not save! Error while executing query - $!";
+      }
+      else {
+        $res = {'err' => 'Error occured while saving', 'errMsg' => qq{Sanger ID or Lane ID not found in the database. Could not update!}};
+        $c->res->body(to_json($res));
+      }
+
     }
     catch {
       #print Dumper $_;

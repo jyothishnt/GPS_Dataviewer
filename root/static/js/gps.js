@@ -6,7 +6,7 @@
       showMsg(str, 'danger');
     }
     function showMsg(msg,type){
-      return $.bootstrapGrowl(msg, { type: type});
+      return $.bootstrapGrowl(msg, { type: type });
     }
     function showColorbox(param) {
       var str;
@@ -57,7 +57,7 @@
           if (row.grs_decision == 0 && row.grs_decision != ""){
             return 'color:#cc0000;'; // return inline style
             // the function can return predefined css class and inline style
-            // return {class:'r1', style:{'color:#fff'}}; 
+            // return {class:'r1', style:{'color:#fff'}};
           }
           else if (row.grs_decision == -1 && row.grs_decision != ""){
             return 'font-weight:bold;color:teal'; // return inline style
@@ -84,7 +84,7 @@
             // showColorbox({
             //     str : 'No data was returned from the server',
             //     title: 'No data found!'
-            // });            
+            // });
           }
           loadedData = $('#dg').datagrid('getData');
         },
@@ -118,9 +118,9 @@
             var t = {};
             t['gss_sanger_id'] = rowData.gss_sanger_id;
             t['gss_lane_id'] = rowData.gss_lane_id;
-            t['grs_comments'] = rowData.grs_comments;
-            t['grs_in_silico_st'] = rowData.grs_in_silico_st;
-            t['grs_in_silico_serotype'] = rowData.grs_in_silico_serotype;
+            for (var i=0; i<editable_columns.length; i++) {
+              t[editable_columns[i]] = rowData[editable_columns[i]];
+            }
             chArr.push(t);
           }
           else {
@@ -335,8 +335,8 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
       var row;
       var col;
       var xml;
-      var data = typeof jsonObject != "object" 
-               ? JSON.parse(jsonObject) 
+      var data = typeof jsonObject != "object"
+               ? JSON.parse(jsonObject)
                : jsonObject;
       xml = emitXmlHeader();
       var type = 'String';
@@ -347,7 +347,7 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
           }
           xml += '  </Row>\n';
       }
-      
+
       xml += emitXmlFooter();
 
 // console.log(xml)
@@ -388,13 +388,13 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
         return XML_CHAR_MAP[ch];
       });
     }
-     
+
     function JSONtoCSV(arrData) {
       var CSV = '';
       //1st loop is to extract each row
       for (var i = 0; i < arrData['rows'].length; i++) {
           var row = "";
-          
+
           //2nd loop will extract each column and convert it in string comma-seprated
           for (var j=0; j<arrData['rows'][i].length; j++) {
               row += '"' + ((arrData['rows'][i][j])?arrData['rows'][i][j]:"") + '",';
@@ -403,19 +403,19 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
           //add a line break after each row
           CSV += row + '\r\n';
       }
-      if (CSV == '') {        
+      if (CSV == '') {
           alert("Invalid data");
           return;
-      }   
+      }
       //Generate a file name
       var filename = "gps_stat_metadata.csv";
-      
+
       // Now the little tricky part.
       // you can use either>> window.open(uri);
       // but this will not work in some browsers
-      // or you will not get the correct file extension    
+      // or you will not get the correct file extension
       //this trick will generate a temp <a /> tag
-      var link = document.createElement("a");    
+      var link = document.createElement("a");
 
       var blob = new Blob([CSV], {
          "type": "text/csv;charset=utf8;"
@@ -502,7 +502,7 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
     var gpsdb_column_1d_array = new Array();
     var dgcolumns = new Array();
     var editable_columns = new Array();
-    editable_columns = ['grs_comments', 'grs_in_silico_st', 'grs_in_silico_serotype'];
+    editable_columns = ['grs_comments', 'grs_in_silico_st', 'grs_in_silico_serotype', 'grs_baps_1', 'grs_baps_2', 'grs_vaccine_status', 'grs_vaccine_period'];
     var visible_columns = new Array();
     visible_columns = ['gss_sanger_id', 'gss_public_name', 'gss_lane_id', 'gsd_total_length', 'gss_total_yield', 'grs_comments' ];
     var exclude_columns = new Array();
@@ -524,7 +524,7 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
       });
 
       // Create a dropdown with the column names for search
-      // Here the function populateSearchColumns() returns an HTML string with the <select> statement 
+      // Here the function populateSearchColumns() returns an HTML string with the <select> statement
       var html_str_search_dropdown = populateSearchColumns();
 
       // Appending the above created html string to the appropriate dropdown div
@@ -650,12 +650,12 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
 
   $.xhrPool = []; // array of uncompleted requests
   $.xhrPool.abortAll = function() { // our abort function
-      $(this).each(function(idx, jqXHR) { 
+      $(this).each(function(idx, jqXHR) {
           jqXHR.abort();
       });
       $.xhrPool.length = 0
   };
-   
+
   $.ajaxSetup({
       beforeSend: function(jqXHR) { // before jQuery send the request we will push it to our array
           $.xhrPool.push(jqXHR);
@@ -686,7 +686,7 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
 
   $(document).ready(function(){
     $('.draggable li.item').click(function () {
-      // Based on class assignment, find out of it has 
+      // Based on class assignment, find out of it has
       if(!$(this).hasClass('add_border')) {
         $('#dg').datagrid('showColumn',this.id);
         $(this).addClass('add_border');
@@ -727,7 +727,7 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
       if(val.field == id) {
         val.hidden = (visible_bool)?false:true;
       }
-    })    
+    })
   }
 
   function changeBackgroundSelected() {
@@ -843,7 +843,7 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
       var c = $('#layout');
       c.height($(window).height()-61);
       c.layout('resize');
-  } 
+  }
 
   // Set height of the layout to window height on window resize.
   $(window).bind('resize', function(){
@@ -946,7 +946,7 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
     $('.update_st_form_container').slideDown();
 
   }
-  
+
   function st_update_validator() {
     if($('#st_update_file').val() == "") {
       showMsg('Please select your file to upload!');
@@ -1002,7 +1002,7 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
       }
     });
 
-  })(); 
+  })();
   window.onload = function() {
     setTimeout(unblock_screen(),100);
   }
@@ -1150,7 +1150,7 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
 
   }
 
-/************************   GC IMAGES Section    ********************************/  
+/************************   GC IMAGES Section    ********************************/
 var gc_img_data = {};
 var show_GC_images = function() {
   var chkdArr = $('#dg').datagrid('getChecked');
@@ -1215,27 +1215,27 @@ var show_GC_images = function() {
       xOffset = 10;
       yOffset = 30;
         // these 2 variable determine popup's distance from the cursor
-        // you might want to adjust to get the right result   
-      /* END CONFIG */    
+        // you might want to adjust to get the right result
+      /* END CONFIG */
       $("img.img_tooltip").hover(function(e){
         this.t = this.title;
-        this.title = "";                    
+        this.title = "";
         $("body").append("<p id='tooltip'>"+ this.t +"</p>");
         $("#tooltip")
           .css("top",(e.pageY + yOffset) + "px")
           .css("left",(e.pageX + xOffset) + "px")
           .css("z-index", 99999)
-          .fadeIn("fast");    
+          .fadeIn("fast");
           },
             function(){
               this.title = this.t;
               $("#tooltip").remove();
-            }); 
+            });
         $("img.img_tooltip").mousemove(function(e){
         $("#tooltip")
           .css("top",(e.pageY + yOffset) + "px")
           .css("left",(e.pageX - $('#tooltip').width()/2) + "px");
-      });     
+      });
       unblock_screen();
     },
     error: function() {
@@ -1385,7 +1385,7 @@ $(document).ready(function(){
           chart.id = chart_id;
           chart.style.width = '300px';
           chart.style.height = '300px';
-          
+
           if(column == 'gmd_gender') {
             // chart.style.position = 'relative';
             chart.style.float = 'left';

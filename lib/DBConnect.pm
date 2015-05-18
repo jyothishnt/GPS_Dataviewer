@@ -21,7 +21,7 @@ use Catalyst qw/
     -Debug
     ConfigLoader
     Static::Simple
-            
+
     Authentication
 
     Session
@@ -63,13 +63,14 @@ __PACKAGE__->config( 'Plugin::Authentication' =>
 __PACKAGE__->setup();
 
 __PACKAGE__->log( Log::Log4perl::Catalyst->new(
-		__PACKAGE__->path_to('gps_log.conf')->stringify  
+		__PACKAGE__->path_to('gps_log.conf')->stringify
 	));
 
 # Connecting to database and storing dbh in config so that it only connects once to the database.
 my $attr = {
     mysql_auto_reconnect => __PACKAGE__->config->{mysql_auto_reconnect},
-    AutoCommit => __PACKAGE__->config->{AutoCommit}
+    AutoCommit => __PACKAGE__->config->{AutoCommit},
+    RaiseError => 1,
 };
 
 my $dbh = DBI->connect(__PACKAGE__->config->{dsn},__PACKAGE__->config->{user},__PACKAGE__->config->{password}, $attr);
