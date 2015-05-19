@@ -350,7 +350,6 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
 
       xml += emitXmlFooter();
 
-// console.log(xml)
       var contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
       var blob = new Blob([xml], {
           'type': contentType
@@ -942,10 +941,24 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
   }
 
   function showUpdateSTWindow() {
-
-    $('.update_st_form_container').slideDown();
-
+    // $('.update_st_form_container').slideDown();
+    $('.update_st_form_container').show().window({
+        width:'auto',
+        height:'auto',
+        title: 'Bulk Upload',
+        modal:true
+    });
   }
+
+  $("select[name='st_update_type']").change( function() {
+    if($("select[name='st_update_type']").val() == '') {
+      $('.st_upload_tip').html('');
+    }
+    var str = 'Input file must contain 2 columns <br> <span class="red">Lane ID</span> (Text) and <span class="red">'
+              + sliced_column($("select[name='st_update_type']").val())
+              + '</span>'
+    $('.st_upload_tip').html(str);
+  });
 
   function st_update_validator() {
     if($('#st_update_file').val() == "") {
@@ -957,7 +970,7 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
       showMsg('Invalid file. Only .xlsx files are valid!');
       return false;
     }
-    if($("input[name='st_update_type']:checked").val() == undefined) {
+    if($("select[name='st_update_type']").val() === undefined || $("select[name='st_update_type']").val() === "") {
       showMsg('Please select the type of data you are uploading!');
       return false;
     }
@@ -969,7 +982,14 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
 
     $('.update_st_form').ajaxForm({
       resetForm: true,
-      beforeSubmit: function(){st_update_validator(); block_screen('Processing data');},
+      beforeSubmit: function(){
+        if (st_update_validator()) {
+          block_screen('Processing data');
+        }
+        else {
+          return false;
+        }
+      },
       success: function(res) {
         var res = JSON.parse(res);
         if(res && res.err) {
@@ -997,8 +1017,12 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
       },
       complete: function(xhr) {
         $('#dg').datagrid('reload');
-        $('.update_st_form_container').slideUp();
+        $('.update_st_form_container').window('close');
+        $('.st_upload_tip').html('');
         unblock_screen();
+      },
+      error: function(jqXHR, textStatus, errorThrown) {
+        showMsg(errorThrown, 'danger');
       }
     });
 
@@ -1286,7 +1310,6 @@ function displayChartWindow() {
 
   if(opened_window[key] != undefined) {
     var open_ele = opened_window[key]['div'];
-    console.log($('#chartDiv'))
     $.colorbox({
       html: open_ele,
       width: $('#layout').width(),
@@ -1297,7 +1320,6 @@ function displayChartWindow() {
   }
   $('#chartDisplayContainer').css('height', div_max_height);
   var ele = $('#chartDiv');
-  console.log(ele)
   $.colorbox({
     html: ele,
     width: $('#layout').width() * 1,
@@ -1336,7 +1358,6 @@ function addToWindowMenu(key){
   div.setAttribute('plain', true);
   $(div).on('click', function(){
     var open_ele = opened_window[key]['div'];
-    console.log(open_ele)
     $.colorbox({
       html: open_ele,
       width: $('#layout').width(),
