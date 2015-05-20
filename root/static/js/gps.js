@@ -247,6 +247,11 @@
       var qdata = {};
       var url = '';
 
+      if (visible_columns.length <= 0) {
+        showMsg('No visible columns to download.<br>Please use Show/Hide to view columns');
+        return;
+      }
+
       // Creating the query string to be passed via POST
       // If row selected
       if(chkdArr.length <= 0) {
@@ -255,7 +260,7 @@
           qdata = {'data': JSON.stringify(inpObj)};
         }
         else {
-          qdata = "";
+          qdata = {};
         }
         url = base_request_url + '/gps/json/download';
       }
@@ -285,6 +290,9 @@
         // Create query string
         qdata = {'download_selected': JSON.stringify(arr)};
       }
+
+      // Pass Selected/Visible columns for download purpose
+      qdata['selected_columns'] = visible_columns;
 
       $.ajax({
         url: url,
@@ -684,6 +692,7 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
   }
 
   $(document).ready(function(){
+    var index;
     $('.draggable li.item').click(function () {
       // Based on class assignment, find out of it has
       if(!$(this).hasClass('add_border')) {
@@ -691,22 +700,34 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
         $(this).addClass('add_border');
         // Making datagrid column field visible
         change_dgcolumns_hidden_property(this.id, true);
+        visible_columns.push(this.id);
       }
       else {
         $('#dg').datagrid('hideColumn',this.id);
         $(this).removeClass('add_border');
         // Making datagrid column field hidden
         change_dgcolumns_hidden_property(this.id, false);
+        index = visible_columns.indexOf(this.id);
+        if (index > -1) {
+          visible_columns.splice(index, 1);
+        }
       }
       return false;
     });
 
     $('.showAll').click(function () {
       $.each(dgcolumns, function(ind, val) {
-        $('#dg').datagrid('showColumn',val.field);
-        $('.draggable li.item').addClass('add_border');
-        // Making datagrid column field visible
-        change_dgcolumns_hidden_property(val.field, true);
+        if(val.field != 'ck') {
+          var opt = $('#dg').datagrid('getColumnOption',val.field);
+          if (opt.hidden) {
+            visible_columns.push(val.field);
+          }
+
+          $('#dg').datagrid('showColumn',val.field);
+          $('.draggable li.item').addClass('add_border');
+          // Making datagrid column field visible
+          change_dgcolumns_hidden_property(val.field, true);
+        }
       });
     });
     $('.hideAll').click(function () {
@@ -716,6 +737,10 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
           $('.draggable li.item').removeClass('add_border');
           // Making datagrid column field visible
           change_dgcolumns_hidden_property(val.field, false);
+          index = visible_columns.indexOf(val.field);
+          if (index > -1) {
+            visible_columns.splice(index, 1);
+          }
         }
       });
     });
@@ -737,7 +762,6 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
       dg_col_opt = $('#dg').datagrid('getColumnOption', col_arr[i].id)
       if(dg_col_opt.field == col_arr[i].id && !dg_col_opt.hidden) {
         $('#'+col_arr[i].id).css('background','#eee').removeClass('remove_border').addClass('add_border');
-
       }
       else if(dg_col_opt.field == col_arr[i].id && dg_col_opt.hidden) {
         $('#'+col_arr[i].id).css('background','#eee').removeClass('add_border').addClass('remove_border');

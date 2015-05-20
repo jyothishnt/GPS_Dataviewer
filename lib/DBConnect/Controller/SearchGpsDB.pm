@@ -3,7 +3,7 @@ use Moose;
 use namespace::autoclean;
 use JSON;
 use Try::Tiny;
-
+use Data::Dumper;
 BEGIN { extends 'Catalyst::Controller'; }
 
 =head1 NAME
@@ -42,13 +42,13 @@ sub searchGPSData :Path('/gps/json/') {
   if(defined $search_data->{download_selected}) {
     $search_data->{download_selected} = decode_json($search_data->{download_selected});
     # Making search data null as we dont want to deal with search when the user selected 'selected download'
-    $search_data->{data} = (); 
+    $search_data->{data} = ();
   }
 
   # Logging
   if(!defined $search_data->{data}) {
     if(defined $search_data->{order}) {
-      $log_str .= '-PageLoad-' . to_json($search_data);  
+      $log_str .= '-PageLoad-' . to_json($search_data);
     }
     else {
       $log_str .= '-PageLoad';
@@ -77,20 +77,31 @@ sub searchGPSData :Path('/gps/json/') {
     $search_data->{data} = ();
   }
 
+  # Columns to fetch
+  my $selected_columns_arr = ();
+  my $selected_columns_str;
+  if(defined $search_data->{'selected_columns'}) {
+    $selected_columns_arr = $search_data->{'selected_columns'};
+    $selected_columns_str = join(',', @$selected_columns_arr);
+  }
+  else {
+    $selected_columns_str = '*';
+  }
+
   # Log info
   $c->log->warn($log_str);
 
   #creating query
   my $col_prefix = '';
   my $search_str;
-  my $search_str_start = 'SELECT * FROM gps_sequence_scape as SC 
+  my $search_str_start = "SELECT $selected_columns_str FROM gps_sequence_scape as SC
                           LEFT JOIN gps_sequence_data as S
                               ON SC.gss_lane_id = S.gsd_lane_id
-                          LEFT JOIN gps_results as U 
+                          LEFT JOIN gps_results as U
                               ON (SC.gss_lane_id = U.grs_lane_id AND SC.gss_sanger_id = U.grs_sanger_id)
                               OR (SC.gss_lane_id IS NULL AND SC.gss_sanger_id = U.grs_sanger_id)
-                          LEFT JOIN gps_metadata as M 
-                              ON SC.gss_public_name = M.gmd_public_name';
+                          LEFT JOIN gps_metadata as M
+                              ON SC.gss_public_name = M.gmd_public_name";
   my $search_substr = '';
   if(defined $search_data->{data} && @{$search_data->{data}} > 0) {
     # Handling GROUPBY first so that we can decide whether to use WHERE or AND later
@@ -121,17 +132,17 @@ sub searchGPSData :Path('/gps/json/') {
     if(!$groupby_exist) {
       $search_substr = ' WHERE ';
     }
-    
+
     # Iterate through each column conditions and create the conditional query
     for (my $i=0; $i<scalar @{$search_data->{data}}; $i++) {
       my $data = $search_data->{data}->[$i];
 
       if($search_data->{data}->[$i]->[0]->{eq} !~/groupby/) { # If not Group by then move forward
-        # If groupby query added above, then append "AND" 
+        # If groupby query added above, then append "AND"
         if($groupby_exist) {
           $search_substr .= ' AND ';
           # Deflagging it so that this is executed only once.
-          $groupby_exist = 0; 
+          $groupby_exist = 0;
         }
 
         # Split and store the post search string into and array
@@ -230,7 +241,7 @@ sub searchGPSData :Path('/gps/json/') {
       if($c->user->get('gpu_username') eq "testuser") {
         $site_search = ' WHERE M.gmd_study_name = "Global Strain Bank" ';
       }
-    }    
+    }
   }
 
   my ($sort, $order);
@@ -272,20 +283,19 @@ sub searchGPSData :Path('/gps/json/') {
   }
 
   my $sth;
+  try {
+    $sth = $c->config->{gps_dbh}->prepare($search_str) or die;
+    #print Dumper $search_str;
+    $sth->execute() or die;
+  }
+  catch {
+    my $res = {'err' => 'Error occured while retrieving data', 'errMsg' => qq{$_}};
+    $c->res->body(to_json($res));
+    return;
+  };
 
   # If now download, then fetch column headings also
   if($args[0] !~/download/) {
-    my $sth;
-    try {
-      $sth = $c->config->{gps_dbh}->prepare($search_str) or die;
-      #print Dumper $search_str;
-      $sth->execute() or die;
-    }
-    catch {
-      my $res = {'err' => 'Error occured while retrieving data', 'errMsg' => qq{$_}};
-      $c->res->body(to_json($res));
-      return;
-    };
     # Push metadata to the final map
     while(my $row = $sth->fetchrow_hashref) {
       push(@{$datamap->{rows}}, $row);
@@ -294,61 +304,34 @@ sub searchGPSData :Path('/gps/json/') {
   else {
 
     # Creating column names
-    ######### CAREFUL - MIND THE ORDER OF QUERIES.
-    my $tables = ['gps_sequence_scape','gps_sequence_scape_npi','gps_sequence_data','gps_results','gps_metadata'];
-    my @orig_colname_arr;
-    my @csv_colname_arr;
-    my $temp_map = {};
-
-    foreach my $table (@$tables) {
-      my $col_search_str = "SELECT column_name, UCASE(REPLACE(SUBSTRING(column_name,5),'_',' ')) as c FROM information_schema.columns WHERE table_name = '$table'";
-      my $sth_col = $c->config->{gps_dbh}->prepare($col_search_str) or $datamap->{err} = '$!';
-      $sth_col->execute() or $datamap->{err} = '$!';
-      while(my @row = $sth_col->fetchrow_array) {
-        # Removing MAPFIND_No_OF_DUPLICATE, ASSFIND_No_OF_DUPLICATE etc COLUMNS
-        if($row[1]!~/DUPLICATES/) {
-          if(!$temp_map->{$row[1]} or $row[1]=~/COMMENTS/) {
-            push @orig_colname_arr, $row[0];
-            push @csv_colname_arr, $row[1];
-            # This temp_map is to remove repeated column names on further fetches
-            $temp_map->{$row[1]}++;
+    if (defined $selected_columns_arr) {
+      my @t_selected_columns_arr = @$selected_columns_arr;
+      foreach my $colname (@t_selected_columns_arr) {
+        $colname =~s/\_/ /g;
+        $colname =~s/\b(\w)/\U$1/g;
+        $colname = substr($colname, 4);
+      }
+      push @{$datamap->{rows}}, \@t_selected_columns_arr;
+      # Storing rows as array;
+      if($sth->rows > 0) {
+        while(my $datahash = $sth->fetchrow_hashref) {
+          $t_arr = ();
+          foreach my $colname (@$selected_columns_arr) {
+            push @$t_arr, $datahash->{$colname};
           }
+          push @{$datamap->{rows}}, $t_arr;
         }
+        $c->res->body(to_json($datamap));
+        return;
       }
-    }
-    # Create column heading csv
-    my $datamap->{rows} = [];
-    push @{$datamap->{rows}}, \@csv_colname_arr;
-    # Fetching data
-    try {
-      $sth = $c->config->{gps_dbh}->prepare($search_str) or die;
-      # print Dumper $search_str;
-      $sth->execute() or die;
-    }
-    catch {
-      my $res = {'err' => 'Error occured while retrieving data', 'errMsg' => qq{$_}};
-      $c->res->body(to_json($res));
-      return;
-    };
-    my $t_arr = ();
-    if($sth->rows > 0) {
-      while(my $datahash = $sth->fetchrow_hashref) {
-        $t_arr = ();
-        foreach my $colname (@orig_colname_arr) {
-          # print Dumper $colname;
-          push @$t_arr, $datahash->{$colname};
-        }
-        push @{$datamap->{rows}}, $t_arr;
+      else {
+        $c->res->body(to_json({'err'=> 'Samples not available for download!'}));
+        return;
       }
-
-      $c->res->body(to_json($datamap));
-      return;
-    }
-    else {
-      $c->res->body(to_json({'err'=> 'Samples not available for download!'}));
-      return;
     }
   }
+
+
 
   # Getting the number of rows.
   $search_str = "SELECT COUNT(*) FROM ($search_str_start $search_substr $download_selected_search_substr $download_substr $site_search) AS TEMP";
