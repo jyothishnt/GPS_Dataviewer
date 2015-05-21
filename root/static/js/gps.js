@@ -970,6 +970,9 @@ xmlns:html="http://www.w3.org/TR/REC-html40">\n\
         width:'auto',
         height:'auto',
         title: 'Bulk Upload',
+        collapsible: false,
+        minimizable: false,
+        maximizable: false,
         modal:true
     });
   }

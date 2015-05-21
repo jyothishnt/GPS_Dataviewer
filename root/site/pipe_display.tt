@@ -87,7 +87,7 @@
                     <h2>Select file to upload</h2>
                     <input type="file" name="st_update_file" id="st_update_file">
                     <hr>
-                    <center><input class="button" type="submit" name="submit" value="Update"></center>
+                    <center><br><button class="button" type="submit" name="submit">Update</button></center>
                 </form>
               </div>
             </div>
