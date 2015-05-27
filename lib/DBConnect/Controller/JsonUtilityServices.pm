@@ -3,7 +3,8 @@ use Moose;
 use namespace::autoclean;
 use JSON;
 use WWW::Mechanize;
-
+use Data::Dumper;
+use DBConnect::Controller::SearchGpsDB;
 BEGIN { extends 'Catalyst::Controller'; }
 
 =head1 NAME
@@ -25,7 +26,7 @@ Catalyst Controller.
 
 
 # Get json formatted data for GPS project site - googlemap GeoJSON API
-# This function takes a column name in gps_metadata column and 
+# This function takes a column name in gps_metadata column and
 # generates a json with its disticnt column values and no. of entries
 sub getSampleCount :Path('/json/meta/') {
   my ( $self, $c, @args ) = @_;
@@ -45,16 +46,16 @@ sub getSampleCount :Path('/json/meta/') {
     }
 
     my $q = qq {
-      SELECT 
-        m.$colname_search, 
+      SELECT
+        m.$colname_search,
         count(m.$colname_search) as $colname_search\_count,
         c.gco_latitude,
         c.gco_longitude
-      FROM gps_sequence_scape s, gps_metadata m, gps_results r, gps_coordinates c 
+      FROM gps_sequence_scape s, gps_metadata m, gps_results r, gps_coordinates c
       WHERE m.gmd_public_name = s.gss_public_name
       AND c.gco_location = m.gmd_country
-      AND s.gss_sanger_id = r.grs_sanger_id 
-      AND r.grs_lane_id = s.gss_lane_id 
+      AND s.gss_sanger_id = r.grs_sanger_id
+      AND r.grs_lane_id = s.gss_lane_id
       AND r.grs_decision<>0
       AND m.$colname_search IS NOT NULL
       AND m.$colname_search <> ""
@@ -79,7 +80,7 @@ sub getSampleCount :Path('/json/meta/') {
     }
     else {
       # If no column found then show the 404 template
-      $c->res->body('Column name not found');      
+      $c->res->body('Column name not found');
     }
   }
   else {
@@ -106,7 +107,7 @@ sub getCoordinates :Path('/json/coordinates/') {
     }
 
     my $q = qq {
-      SELECT 
+      SELECT
         gco_location,
         gco_latitude,
         gco_longitude
@@ -133,7 +134,7 @@ sub getCoordinates :Path('/json/coordinates/') {
     }
     else {
       # If no column found then show the 404 template
-      $c->res->body('Country not found');      
+      $c->res->body('Country not found');
     }
   }
   else {
@@ -142,13 +143,13 @@ sub getCoordinates :Path('/json/coordinates/') {
   }
 }
 
-# Get json - column + count (Same as the function getSampleCount() in this package, 
+# Get json - column + count (Same as the function getSampleCount() in this package,
 # but to make it authorised access, we are removing 'json/' form the url)
-# This function takes a column name in gps_metadata column and 
+# This function takes a column name in gps_metadata column and
 # generates a json with its disticnt column values and no. of entries
 sub getSampleCountAuthorised :Path('/count/meta/') {
   my ( $self, $c, @args ) = @_;
-  my $map = [];
+  my $map = {};
   if(scalar @args > 0) {
     # Get the column name
     my $colname_search = $args[0];
@@ -162,45 +163,88 @@ sub getSampleCountAuthorised :Path('/count/meta/') {
       my $dbh = DBI->connect($c->config->{dsn},$c->config->{user},$c->config->{password}, $attr);
       $c->config->{gps_dbh} = $dbh;
     }
-    
-    my $prefix = ($colname_search =~ /^gmd/)? 'M': (($colname_search =~ /^gsd/)? 'S': (($colname_search =~ /^gss/)? 'SC':'R'));
-    
+
+    my $prefix = DBConnect::Controller::SearchGpsDB::getColumnPrefix($colname_search);
+
     my $q = qq {
-      SELECT 
-        $prefix.$colname_search, 
+      SELECT
+        $prefix.$colname_search,
         count($prefix.$colname_search) as $colname_search\_count
-      FROM gps_sequence_scape S, gps_metadata M, gps_results R
-      WHERE M.gmd_public_name = S.gss_public_name
-      AND S.gss_sanger_id = R.grs_sanger_id 
-      AND R.grs_lane_id = S.gss_lane_id 
-      AND R.grs_decision<>0
-      AND $prefix.$colname_search IS NOT NULL
-      AND $prefix.$colname_search <> ""
-      GROUP BY $colname_search;
+        FROM gps_sequence_scape as SC
+        LEFT JOIN gps_sequence_data as S
+            ON SC.gss_lane_id = S.gsd_lane_id
+        LEFT JOIN gps_results as U
+            ON (SC.gss_lane_id = U.grs_lane_id AND SC.gss_sanger_id = U.grs_sanger_id)
+            OR (SC.gss_lane_id IS NULL AND SC.gss_sanger_id = U.grs_sanger_id)
+        LEFT JOIN gps_metadata as M
+            ON SC.gss_public_name = M.gmd_public_name
+        GROUP BY $prefix.$colname_search
     };
 
     my $sth = $c->config->{gps_dbh}->prepare($q);
     $sth->execute;
     # Create a resultset with a groupby clause
     if($sth->rows > 0) {
-      my $t_map = {};
       while(my $row = $sth->fetchrow_hashref) {
         # Creating a hash of column value and count
-        $t_map = {};
-        $t_map->{$row->{$colname_search}}->{sample_count} = $row->{$colname_search.'_count'};
-        push @{$map}, $t_map;
+        if(defined $row->{$colname_search}) {
+          $map->{$row->{$colname_search}}->{sample_count} = $row->{$colname_search.'_count'};
+        }
       }
       # Send back json
       $c->res->body(to_json($map));
     }
     else {
       # If no column found then show the 404 template
-      $c->res->body('Column name not found');      
+      $c->res->body('Column name not found');
     }
   }
   else {
     # If no arguments then show the 404 template
     $c->res->body('Column name argument missing');
+  }
+}
+
+# Populate search drop down
+sub populateSearch :Path('/populate_search/') {
+  my ( $self, $c, @args ) = @_;
+  if (scalar @args > 0) {
+    my $colname_search = $args[0];
+
+    my $prefix = DBConnect::Controller::SearchGpsDB::getColumnPrefix($colname_search);
+    my $map = {};
+    my $q = qq {
+      SELECT
+        DISTINCT $prefix.$colname_search
+        FROM gps_sequence_scape as SC
+        LEFT JOIN gps_sequence_data as S
+            ON SC.gss_lane_id = S.gsd_lane_id
+        LEFT JOIN gps_results as U
+            ON (SC.gss_lane_id = U.grs_lane_id AND SC.gss_sanger_id = U.grs_sanger_id)
+            OR (SC.gss_lane_id IS NULL AND SC.gss_sanger_id = U.grs_sanger_id)
+        LEFT JOIN gps_metadata as M
+            ON SC.gss_public_name = M.gmd_public_name
+    };
+
+    my $sth = $c->config->{gps_dbh}->prepare($q);
+    $sth->execute;
+    # Create a resultset with a groupby clause
+    if($sth->rows > 0) {
+      while(my $row = $sth->fetchrow_hashref) {
+        # Creating a hash of column value and count
+        push @{$map->{$colname_search}}, $row->{$colname_search};
+      }
+      # Send back json
+      $c->res->body(to_json($map));
+    }
+    else {
+      # If no column found then show the 404 template
+      $c->res->body(to_json({'error' => 'Column name not found'}));
+    }
+  }
+  else {
+    # If no arguments then show the 404 template
+    $c->res->body(to_json({'error' => 'Column name argument missing'}));
   }
 }
 

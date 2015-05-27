@@ -2,6 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <!-- Latest compiled and minified CSS -->
   <link rel="stylesheet" type="text/css" href="[% c.request.base %]/static/js/jquery-easyui-1.3.5/themes/bootstrap/easyui.css">
   <link rel="stylesheet" type="text/css" href="[% c.request.base %]/static/js/jquery-easyui-1.3.5/themes/icon.css">
   <link rel="stylesheet" type="text/css" href="[% c.request.base %]/static/css/style.css">
@@ -73,7 +74,7 @@
               <div class="update_st_form">
                 <form action='[% c.request.base %]/bulk_upload' enctype="multipart/form-data" method="post" class="st_update_form" >
                     <h2>Select upload type </h2>
-                    <select name="st_update_type">
+                    <select name="st_update_type" class="form-control">
                       <option value="">Select Upload Type</option>
                       <option value="grs_in_silico_st">Sequence Type</option>
                       <option value="grs_in_silico_serotype">Serotype</option>
@@ -96,6 +97,7 @@
         <div id="tools_menu">
           <div onClick="updataDecision(1)" iconCls="icon-ok" plain="true" title="Include selected">Include</div>
           <div onClick="updataDecision(0)" iconCls="icon-minus" plain="true" title="Exclude selected">Exclude</div>
+          <div onClick="updataDecision(-1)" iconCls="icon-remove" plain="true" title="In Progress">In Progress</div>
           <div onClick="javascript:showUpdateSTWindow()" iconCls="icon-edit" plain="true" title="Update ST">Bulk Upload</div>
           <div class="menu-sep"></div>
           <div data-options="iconCls:'icon-eye'" >
@@ -171,9 +173,11 @@
                           <option value="<="><=</option>
                           <option value=">">></option>
                           <option value=">=">>=</option>
-                          <option value="groupby">DUPLICATES > </option>
+                          <option value="groupby">DUPLICATES ></option>
+                          <option value="showList">SHOW LIST</option>
                     </select><br>
                     <textarea name="search_str" id="search_str" rows="3" cols="35" placeholder="Paste your input here... Multiple entries should be separated by a newline character"></textarea>
+                    <select size="1" style="width: 200px" name="search_populate" id="search_populate"></select>
                  </dd>
                </dt>
               </dl>

@@ -385,6 +385,9 @@ button.add_selected {
 	float: right;
 	cursor: pointer;
 }
+#search_populate {
+	display: none;
+}
 .button:hover {
 	cursor:pointer;
 	opacity:1;filter:alpha(opacity=100);
