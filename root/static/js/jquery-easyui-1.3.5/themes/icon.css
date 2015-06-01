@@ -1,3 +1,21 @@
+.icon-progress{
+	background:url('icons/progress.png') no-repeat center center;
+}
+.icon-upload{
+	background:url('icons/upload.png') no-repeat center center;
+}
+.icon-summary{
+	background:url('icons/summary.png') no-repeat center center;
+}
+.icon-exclude{
+	background:url('icons/exclude.png') no-repeat center center;
+}
+.icon-hq{
+	background:url('icons/high_quality.png') no-repeat center center;
+}
+.icon-qc{
+	background:url('icons/qc.png') no-repeat center center;
+}
 .icon-download{
 	background:url('icons/download.gif') no-repeat center center;
 }

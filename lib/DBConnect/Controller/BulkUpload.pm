@@ -3,6 +3,8 @@ use Moose;
 use namespace::autoclean;
 use JSON;
 use Spreadsheet::XLSX;
+use Spreadsheet::ParseExcel;
+use Text::CSV;
 use Try::Tiny;
 
 BEGIN { extends 'Catalyst::Controller'; }
@@ -44,40 +46,43 @@ sub bulkUpload :Path('/bulk_upload/') {
     $c->res->body(to_json($res));
     return;
   }
-  my $excel = Spreadsheet::XLSX -> new ($upfile->fh);
 
-  # Transaction start
-  my $schema = $c->model('gps::GpsResult')->result_source->schema;
+  my $extension = (split('\.', $upfile->filename))[-1];
+  my $parsedData = {};
+  if($extension eq "xlsx") {
+    $parsedData = parseXLSX($upfile->fh);
+  }
+  elsif($extension eq "xls") {
+    $parsedData = parseXLS($upfile->fh);
+  }
+  elsif($extension eq "csv") {
+    $parsedData =parseCSV($upfile->fh);
+  }
 
-  # Begin transaction
-
+  my $q;
   eval {
-    GETOUT: foreach my $sheet (@{$excel -> {Worksheet}}) {
-      $sheet -> {MaxRow} ||= $sheet -> {MinRow};
-       foreach my $row ($sheet -> {MinRow} +1 .. $sheet -> {MaxRow}) {
-        $sheet -> {MaxCol} ||= $sheet -> {MinCol};
-        my $lane = $sheet->{Cells}[$row][0]->{Val};
-        my $new_value = $sheet->{Cells}[$row][1]->{Val};
-        if (defined $lane && defined $new_value) {
-          my $rows_affected;
-          try {
-            $rows_affected = $c->config->{gps_dbh}->do("update gps_results set $column = '$new_value', grs_updated_on = now() where grs_lane_id = '$lane'") or die $!;
-            if($rows_affected == 0  or $rows_affected eq '0E0') {
-              push @{$res->{rows_not_updated}}, $lane;
-            }
-            else {
-              $res->{rows_updated}++;
-            }
-          }
-          catch {
-            # Updated = 0 due to rollback
-            $res->{rows_updated} = 0;
-            $c->config->{gps_dbh}->rollback();
-            $res->{err} = "Could not complete your request. Please check the input file: $_";
-            $c->res->body(to_json($res));
-            last GETOUT;
-          };
+    foreach my $lane (keys %$parsedData) {
+
+      my $rows_affected;
+      try {
+        $q = qq {
+          UPDATE gps_results SET $column = '$parsedData->{$lane}', grs_updated_on = now() WHERE grs_lane_id = '$lane'
+        };
+        $rows_affected = $c->config->{gps_dbh}->do($q) or die $!;
+        if($rows_affected == 0  or $rows_affected eq '0E0') {
+          push @{$res->{rows_not_updated}}, $lane;
         }
+        else {
+          $res->{rows_updated}++;
+        }
+      }
+      catch {
+        # Updated = 0 due to rollback
+        $res->{rows_updated} = 0;
+        $c->config->{gps_dbh}->rollback();
+        $res->{err} = "Could not complete your request. Please check the input file: $_";
+        $c->res->body(to_json($res));
+        last;
       }
     }
   };
@@ -92,6 +97,66 @@ sub bulkUpload :Path('/bulk_upload/') {
   $c->res->body(to_json($res));
 }
 
+sub parseXLSX {
+  my $fh = shift || die "Parse file not specified";
+  my $parsedData = {};
+  my $excel = Spreadsheet::XLSX -> new ($fh);
+  foreach my $sheet (@{$excel -> {Worksheet}}) {
+    $sheet -> {MaxRow} ||= $sheet -> {MinRow};
+     foreach my $row ($sheet -> {MinRow} +1 .. $sheet -> {MaxRow}) {
+      $sheet -> {MaxCol} ||= $sheet -> {MinCol};
+      my $lane = $sheet->{Cells}[$row][0]->{Val};
+      my $new_value = $sheet->{Cells}[$row][1]->{Val};
+      if (defined $lane) {
+        $parsedData->{$lane} =  (defined $new_value)? $new_value : '';
+      }
+    }
+  }
+  return $parsedData;
+}
+
+sub parseXLS {
+  my $fh = shift || die "Parse file not specified";
+  my $parser   = Spreadsheet::ParseExcel->new();
+  my $workbook = $parser->parse($fh);
+  my $parsedData = {};
+  if ( !defined $workbook ) {
+      die $parser->error(), ".\n";
+  }
+  for my $worksheet ( $workbook->worksheets() ) {
+    my ( $row_min, $row_max ) = $worksheet->row_range();
+    for my $row ( $row_min+1 .. $row_max ) {
+
+      my $lane = $worksheet->get_cell( $row, 0 )->value();
+      my $value = $worksheet->get_cell( $row, 1 )->value();
+      if($lane) {
+        $parsedData->{$lane} = (defined $value)? $value : '';
+      }
+    }
+  }
+  return $parsedData;
+}
+
+sub parseCSV {
+  my $fh = shift || die "Parse file not specified";
+  my $parsedData = {};
+  my @arr;
+
+  my @rows;
+  my $csv = Text::CSV->new ( { binary => 1 } )  # should set binary attribute.
+                 or die "Cannot use CSV: ".Text::CSV->error_diag ();
+  <$fh>;
+  while ( my $row = $csv->getline( $fh ) ) {
+    if (defined $row->[0]) {
+      $parsedData->{$row->[0]} = (defined $row->[1])? $row->[1] : ''
+    }
+  }
+  $csv->eof or $csv->error_diag();
+  close $fh;
+  $csv->eol ("\r\n");
+
+  return $parsedData;
+}
 =encoding utf8
 
 =head1 AUTHOR

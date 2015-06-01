@@ -1070,7 +1070,7 @@ function st_update_validator() {
     showMsg('Please select your file to upload!');
     return false;
   }
-  var reg = /\.xlsx$/;
+  var reg = /[\.xlsx,\.csv,\.xls]$/;
   if(!reg.test($('#st_update_file').val())) {
     showMsg('Invalid file. Only .xlsx files are valid!');
     return false;
@@ -1122,7 +1122,7 @@ function st_update_validator() {
     },
     complete: function(xhr) {
       $('#dg').datagrid('reload');
-      $('.update_st_form_container').window('close');
+      // $('.update_st_form_container').window('close');
       $('.st_upload_tip').html('');
       unblock_screen();
     },

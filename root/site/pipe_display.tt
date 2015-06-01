@@ -76,8 +76,8 @@
                     <h2>Select upload type </h2>
                     <select name="st_update_type" class="form-control">
                       <option value="">Select Upload Type</option>
-                      <option value="grs_in_silico_st">Sequence Type</option>
-                      <option value="grs_in_silico_serotype">Serotype</option>
+                      <option value="grs_in_silico_st">In Silico Sequence Type</option>
+                      <option value="grs_in_silico_serotype">In Silico Serotype</option>
                       <option value="grs_baps_1">BAPS_1</option>
                       <option value="grs_baps_2">BAPS_2</option>
                       <option value="grs_vaccine_status">Vaccine Status</option>
@@ -95,15 +95,21 @@
           </div>
 
         <div id="tools_menu">
-          <div onClick="updataDecision(1)" iconCls="icon-ok" plain="true" title="Include selected">Include</div>
-          <div onClick="updataDecision(0)" iconCls="icon-minus" plain="true" title="Exclude selected">Exclude</div>
-          <div onClick="updataDecision(-1)" iconCls="icon-remove" plain="true" title="In Progress">In Progress</div>
-          <div onClick="javascript:showUpdateSTWindow()" iconCls="icon-edit" plain="true" title="Update ST">Bulk Upload</div>
+          <div data-options="iconCls:'icon-qc'" >
+            <span>QC</span>
+            <div>
+              <div onClick="updataDecision(1)" iconCls="icon-ok" plain="true" title="Include selected">Include</div>
+              <div onClick="updataDecision(2)" iconCls="icon-hq" plain="true" title="Mark as High Quality">High Quality</div>
+              <div onClick="updataDecision(0)" iconCls="icon-exclude" plain="true" title="Exclude selected">Exclude</div>
+              <div onClick="updataDecision(-1)" iconCls="icon-progress" plain="true" title="In Progress">In Progress</div>
+            </div>
+          </div>
+          <div onClick="javascript:showUpdateSTWindow()" iconCls="icon-upload" plain="true" title="Update ST">Bulk Upload</div>
           <div class="menu-sep"></div>
           <div data-options="iconCls:'icon-eye'" >
             <span>Visualize</span>
             <div>
-              <div onClick="displayChartWindow()" data-options="iconCls:'icon-remove'" plain="true" title="Summary Charts">Summary Charts</div>
+              <div onClick="displayChartWindow()" data-options="iconCls:'icon-summary'" plain="true" title="Summary Charts">Summary Charts</div>
             </div>
           </div>
         </div>

@@ -4,7 +4,7 @@ use namespace::autoclean;
 use Log::Log4perl::Catalyst;
 use DBI;
 use Catalyst::Runtime 5.80;
-use Data::Dumper;
+
 # Set flags and add plugins for the application.
 #
 # Note that ORDERING IS IMPORTANT here as plugins are initialized in order,

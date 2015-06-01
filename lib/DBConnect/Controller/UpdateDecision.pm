@@ -54,7 +54,7 @@ sub updateDecision : Path('/gps/update/decision') {
       if(defined $row->{gss_lane_id} && defined $row->{gss_sanger_id}) {
         $rs = $schema->search({ 'grs_lane_id' => $row->{gss_lane_id} });
         if($rs->count) {
-          $sth1->execute($type, $row->{gss_sanger_id}, $row->{gss_lane_id}) or die "Could not save! Error while executing query - $!"; 
+          $sth1->execute($type, $row->{gss_sanger_id}, $row->{gss_lane_id}) or die "Could not save! Error while executing query - $!";
         }
         else {
           $res = {'err' => 'Error occured while saving', 'errMsg' => qq{Lane ID not found in the database}};
@@ -71,17 +71,6 @@ sub updateDecision : Path('/gps/update/decision') {
           # For counting the total no. of rows updated. This include all the duplicate rows for each public name in the postData list
         }
         else {
-          # if lane and sanger id not found, then create a new row.
-          # Ideally this should not happen as there should be atleast a sanger id for a row.
-          # And we are also updating the QC results table with newly added sanger id and lanes 
-          # when we update the sequencing pipeline table using the update script.
-          #$now = strftime "%Y-%m-%d %H:%M:%S", localtime;
-          #$schema->create({
-          #  'grs_sample_id' => $row->{gss_sample_id},
-          #  'grs_lane_id' => $row->{gss_lane_id},
-          #  'grs_decision' => $type,
-          #  'grs_updated_on' => $now
-          #});
           $res = {'err' => 'Error occured while saving', 'errMsg' => qq{Sanger ID not found in the database}};
           $c->config->{gps_dbh}->rollback;
           $c->res->body(to_json($res));
@@ -96,7 +85,7 @@ sub updateDecision : Path('/gps/update/decision') {
       # Update sample_outcome based on the below conditions
 =head
         For public name X. Is there A SINGLE record (only one) with public name X that has decision 1, outcome js "Sample completed".
-        if not 
+        if not
         For public name X. Is there more than one record with public name X that has decision 1, outcome is "Sample completed".
         if not
         Is there any record with public name X that has decision -1, outcome is "Sample in progress"
@@ -119,7 +108,7 @@ sub updateDecision : Path('/gps/update/decision') {
           }
 
           my $sample_outcome;
-          # Creating a string for mysql string search with all the sanger ids for the given public name 
+          # Creating a string for mysql string search with all the sanger ids for the given public name
           my $t_sam_str = '"'.join('","',@$t_arr).'"';
           $q = qq{SELECT grs_decision FROM gps_results where grs_sanger_id IN ($t_sam_str)};
           $sth = $c->config->{gps_dbh}->prepare($q) or die "Could not save! Error while preparing query - $!";
@@ -128,7 +117,7 @@ sub updateDecision : Path('/gps/update/decision') {
             while(my $arr = $sth->fetchrow_arrayref()) {
               my $dec = $arr->[0];
               # If there is atleast one sample with decision 1, then sample is completed
-              if($dec == 1) {
+              if($dec == 1 || $dec == 2) {
                 $sample_outcome = 'Sample completed';
                 last;
               }
@@ -137,7 +126,7 @@ sub updateDecision : Path('/gps/update/decision') {
                 $sample_outcome = 'Sample in progress';
                 last;
               }
-              elsif($dec == 0) { 
+              elsif($dec == 0) {
                 # If decision(in db)  = 0 and current decision = 1, then sample completed. Else failed
                 ($type == 1)?$sample_outcome = 'Sample Completed' : $sample_outcome = 'Sample failed';
               }

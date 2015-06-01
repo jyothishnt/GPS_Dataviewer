@@ -3,7 +3,6 @@ use Moose;
 use namespace::autoclean;
 use JSON;
 use WWW::Mechanize;
-use Data::Dumper;
 use DBConnect::Controller::SearchGpsDB;
 BEGIN { extends 'Catalyst::Controller'; }
 

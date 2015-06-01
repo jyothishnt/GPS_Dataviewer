@@ -2,7 +2,6 @@ package DBConnect::Controller::SiteLoad;
 use Moose;
 use namespace::autoclean;
 use JSON;
-use Data::Dumper;
 BEGIN { extends 'Catalyst::Controller'; }
 
 =head1 NAME
