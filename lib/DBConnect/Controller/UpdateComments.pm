@@ -76,8 +76,6 @@ sub updateComments : Path('/gps/update/comments') {
   my $sth;
   my $now;
 
-  use Data::Dumper;
-
   # Create quesry in-string to inject into the mysql query string
   my $qstring = createSqlString($postData);
 

@@ -1,5 +1,7 @@
 var loadedData;
 var dg_searched = false;
+var paginationOriginalText;
+var search_query;
 var myNav = navigator.userAgent.indexOf('msie');
 if (myNav > 0) {
   var str = 'You are using an incompatible browser. Please use latest version of Firefox or Chrome';
@@ -38,6 +40,7 @@ var showGrid = function(fl){
       return false;
     }
     dg_searched = true;
+    search_query = {search_input: JSON.stringify(inpObj)};
   }
 
   init = (fl=="search")? false : true; // If search clicked, then it is no more an initial load. So set it false
@@ -46,7 +49,7 @@ var showGrid = function(fl){
     url: base_request_url + '/gps/json/search',
     columns: [dgcolumns],
     method: 'post',
-    queryParams: (dg_searched)? {data: JSON.stringify(inpObj)}:'',
+    queryParams: (dg_searched)? search_query:'',
     iconCls: 'icon-search',
     singleSelect: false,
     remoteSort: true,
@@ -130,11 +133,74 @@ var showGrid = function(fl){
     },
     onError: function(index,row){
       showMsg('Error'+index,'danger');
+    },
+    onCheck: function(index, row) {
+      var count = $(this).datagrid('getChecked').length;
+      if (!paginationOriginalText) {
+        paginationOriginalText = $('div.pagination div.pagination-info').html();
+      }
+      if(count > 0) {
+        var str = (count > 1)?' rows' : ' row';
+        var msgText = 'Selected ' + count + str;
+        changePaginationText(msgText);
+      }
+      else {
+        changePaginationText(paginationOriginalText);
+      }
+    },
+    onUncheck: function(index, row) {
+      var count = $(this).datagrid('getChecked').length;
+      if(count > 0) {
+        var str = (count > 1)?' rows' : ' row';
+        var msgText = 'Selected ' + count + str;
+        changePaginationText(msgText);
+      }
+      else {
+        changePaginationText(paginationOriginalText);
+      }
+    },
+    onCheckAll: function(rows) {
+      // Check if Select All checkbox is clicked
+      // If YES, then ask if user need to select the entire column or just the visible ones
+      if(!paginationOriginalText) {
+        paginationOriginalText = $('div.pagination div.pagination-info').html();
+      }
+      var str = '<h3>Would you like to select the entire resultset of ' + loadedData.total + ' rows?</h3>'
+      $('#msg').html(str).dialog({
+        width: 300,
+        height: 150,
+        closed: false,
+        cache: false,
+        modal: true,
+        title: "Confirm",
+        buttons: [{
+          text: 'Yes',
+          handler: function() {
+            selectAllMeansSelectEntireData = true;
+            var msgText = 'Selected ' + loadedData.total + ' rows';
+            changePaginationText(msgText);
+            $( '#msg' ).dialog( "close" );
+          },
+        },
+        {
+          text: 'No',
+          handler: function() {
+            selectAllMeansSelectEntireData = false;
+            var msgText = 'Selected ' + rows.length + ' rows';
+            changePaginationText(msgText);
+            $( '#msg' ).dialog( "close" );
+            return false;
+        }
+        }]
+      });  //end confirm dialog
+    },
+    onUncheckAll: function(rows) {
+      selectAllMeansSelectEntireData = false;
+      changePaginationText(paginationOriginalText);
     }
   });
   return false;
 };
-
 
 // Validate form before search or Download
 var validateForm = function(inpObj) {
@@ -173,7 +239,6 @@ var checkIfDataEdited = function() {
   if (rows.length){
 
     $('#msg').html('<h3>Datagrid edited, but not saved!</h3>').dialog({
-      title: 'My Dialog',
       width: 300,
       height: 120,
       closed: false,
@@ -197,7 +262,7 @@ var checkIfDataEdited = function() {
             return false;
         }
       }]
-    });  //end confirm dialog            return false;
+    });  //end confirm dialog
   }
 }
 
@@ -230,6 +295,7 @@ var saveData = function(){
       },
       complete: function(){
         $('#dg').datagrid('reload');
+        changePaginationText(paginationOriginalText);
         chArr = [];
         unblock_screen();
       }
@@ -248,6 +314,10 @@ var exportData = function(extn) {
   var qdata = {};
   var url = '';
 
+  if(selectAllMeansSelectEntireData) {
+    chkdArr = [];
+  }
+
   if (visible_columns.length <= 0) {
     showMsg('No visible columns to download.<br>Please use Show/Hide to view columns');
     return;
@@ -258,7 +328,7 @@ var exportData = function(extn) {
   if(chkdArr.length <= 0) {
     if(dg_searched) {
       var inpObj = $('.niceform').serializeObject();
-      qdata = {'data': JSON.stringify(inpObj)};
+      qdata = {'search_input': JSON.stringify(inpObj)};
     }
     else {
       qdata = {};
@@ -444,26 +514,86 @@ function JSONtoCSV(arrData) {
 }
 
 // Function to include all checked rows
-var updataDecision = function(val) {
+var updateDecision = function(decisionVal) {
   $('#dg').edatagrid('acceptChanges');
-  var chkdArr = $('#dg').datagrid('getChecked');
-  var arr = new Array();
-  jQuery.each(chkdArr, function(ind, row) {
-    var t = {};
-    t['gss_sanger_id'] = row.gss_sanger_id;
-    t['gss_lane_id'] = row.gss_lane_id;
-    t['gss_public_name'] = row.gss_public_name;
-    arr.push(t);
-  })
 
-  if(arr.length) {
+  if (selectAllMeansSelectEntireData) {
+    updateAllDecision(decisionVal);
+  }
+  else {
+    var chkdArr = getChecked('#dg');
+    var arr = new Array();
+    if(chkdArr && chkdArr.length > 0) {
+      jQuery.each(chkdArr, function(ind, row) {
+        var t = {};
+        t.gss_sanger_id = row.gss_sanger_id;
+        t.gss_lane_id = row.gss_lane_id;
+        t.gss_public_name = row.gss_public_name;
+        arr.push(t);
+      });
+      sendForDecisionUpdate(arr, decisionVal);
+    }
+  }
+};
+
+var getChecked = function(gridEleId){
+  var chkdArr = $(gridEleId).datagrid('getChecked');
+  if(chkdArr.length <= 0) {
+    showMsg('Please select a sample!');
+    return false;
+  }
+  else {
+    return chkdArr;
+  }
+
+}
+var updateAllDecision = function(decisionVal) {
+  // Get search input if search is active
+  var search_input;
+  if(search_query && search_query.search_input) {
+    search_input = search_query.search_input;
+  }
+
+  $.ajax({
+    url: base_request_url + '/get_column_data',
+    type: 'POST',
+    cache: false,
+    data: {
+      'select_columns' : ['gss_sanger_id','gss_lane_id','gss_public_name'],
+      'search_input': (search_input)? search_input:''
+    },
+    dataType: 'JSON',
+    success: function(data, textStatus, jqXHR) {
+      if(data && data.err) {
+        var str = "Error: " + data.err + "<br>Message:" + data.errMsg
+        showMsg(str,'danger');
+      }
+      else {
+        sendForDecisionUpdate(data.rows, decisionVal)
+      }
+    },
+    error: function(jqXHR, textStatus, errorThrown) {
+      showMsg('Error: '+ errorThrown, 'danger');
+      unblock_screen();
+    },
+    complete: function(jqXHR, textStatus ){
+      $('#dg').datagrid('reload');
+      changePaginationText(paginationOriginalText);
+      chArr = [];
+      unblock_screen();
+    }
+  });
+};
+
+var sendForDecisionUpdate = function(dataArr, decisionVal) {
+  if(dataArr.length > 0) {
     $.ajax({
       url: base_request_url + '/gps/update/decision',
       type: 'POST',
       cache:false,
       data: {
-        'data' : JSON.stringify(arr),
-        'type' : val
+        'data' : JSON.stringify(dataArr),
+        'type' : decisionVal
       },
       dataType: 'JSON',
       beforeSend: block_screen('Updating data'),
@@ -473,7 +603,7 @@ var updataDecision = function(val) {
           showMsg(str,'danger');
         }
         else if(data.success) {
-          showMsg( '<em>' + data.success.final_sample_outcome + '</em>' + ' <br>( ' + data.success.rows + ((data.success.rows > 1)?' rows':' row') + ' updated )','success');
+          showMsg( data.success.rows + ((data.success.rows > 1)?' rows':' row') + ' updated as <em>' + data.success.final_sample_outcome + '</em>','success');
         }
       },
       error: function(jqXHR, textStatus, errorThrown) {
@@ -482,6 +612,7 @@ var updataDecision = function(val) {
       },
       complete: function(jqXHR, textStatus ){
         $('#dg').datagrid('reload');
+        changePaginationText(paginationOriginalText);
         chArr = [];
         unblock_screen();
       }
@@ -515,7 +646,7 @@ var visible_columns = new Array();
 visible_columns = ['gss_sanger_id', 'gss_public_name', 'gss_lane_id', 'gsd_total_length', 'gss_total_yield', 'grs_comments' ];
 var exclude_columns = new Array();
 exclude_columns = [];
-
+var selectAllMeansSelectEntireData = false;
 /*************   MAIN   **************/
 $(document).ready(function(){
 
@@ -600,8 +731,35 @@ $(document).ready(function(){
   showGrid('init');
   // Load the dragging pane div with column name boxes for drag and drop
   load_div_dgcolumns();
+
+$('.datagrid-pager').find('a.l-btn').click(function() {
+  console.log($(this));
+  console.log($(this).find('span.l-btn-empty').attr('class').split(' '))
 });
 
+$('.logo').tooltip({
+  content: function() {
+    console.log('a')
+    return "Om Amma"
+  }
+})
+  $('.datagrid-pager').find('a.l-btn').tooltip({
+      content: function(){
+          var cc = $(this).find('span.l-btn-icon').attr('class').split(' ');
+          var icon = cc[1].split('-')[1];
+          return icon + ' page';
+      }
+  });
+
+});
+
+function changePaginationText(text) {
+  $('div.pagination div.pagination-info').html(text);
+}
+
+
+
+// Populate search on search type or search column change
 $(document).on('change', "select[name='eq'], select[name='columns']", function () {
   var eq_ele;
 
@@ -631,11 +789,16 @@ $(document).on('change', "select[name='eq'], select[name='columns']", function (
           showMsg(str,'danger');
         }
         else if(data[selected_column]) {
-
           var html_str = '';
           $.each(data[selected_column].sort(), function(index, value) {
             html_str += '<option value="'+ value +'">' + value + '</option>';
           });
+          $(eq_ele).nextAll('#search_str').html('').hide();
+          $(eq_ele).nextAll('#search_populate').html(html_str).show();
+        }
+        else {
+          // Nothing to display
+          var html_str = '<option value="">No Data Found</option>';
           $(eq_ele).nextAll('#search_str').html('').hide();
           $(eq_ele).nextAll('#search_populate').html(html_str).show();
         }
@@ -973,16 +1136,20 @@ function showResistance() {
 function downloadFastq() {
   // http://www.ebi.ac.uk/ena/data/warehouse/filereport?accession=ERS221588&result=read_run&fields=fastq_ftp
   $('#dg').edatagrid('acceptChanges');
-  var chkdArr = $('#dg').datagrid('getChecked');
+  var chkdArr = getChecked('#dg');
   var arr = new Array();
-  $.each(chkdArr, function(ind, row) {
-    arr.push(row.gsd_err);
-  });
-  var msg;
-  if(arr.length <= 0) {
-    showMsg('Please select a sample!');
-    return;
+  if(chkdArr) {
+    if(chkdArr.length > 0) {
+      $.each(chkdArr, function(ind, row) {
+        arr.push(row.gsd_err);
+      });
+    }
   }
+  else {
+    return false;
+  }
+  var msg;
+  console.log(arr)
 
   var url = base_request_url + '/fastq/url/';
 
@@ -1070,11 +1237,12 @@ function st_update_validator() {
     showMsg('Please select your file to upload!');
     return false;
   }
-  var reg = /[\.xlsx,\.csv,\.xls]$/;
+  var reg = /\.xlsx$/;
   if(!reg.test($('#st_update_file').val())) {
     showMsg('Invalid file. Only .xlsx files are valid!');
     return false;
   }
+
   if($("select[name='st_update_type']").val() === undefined || $("select[name='st_update_type']").val() === "") {
     showMsg('Please select the type of data you are uploading!');
     return false;
@@ -1122,6 +1290,7 @@ function st_update_validator() {
     },
     complete: function(xhr) {
       $('#dg').datagrid('reload');
+      changePaginationText(paginationOriginalText);
       // $('.update_st_form_container').window('close');
       $('.st_upload_tip').html('');
       unblock_screen();
@@ -1136,30 +1305,35 @@ window.onload = function() {
   setTimeout(unblock_screen(),100);
 }
 
-
 function downloadZipFiles(type) {
   checkIfDataEdited();
   $('#dg').edatagrid('acceptChanges');
-  var chkdArr = $('#dg').datagrid('getChecked');
+  var chkdArr = getChecked('#dg');
   var arr = new Array();
-  $.each(chkdArr, function(ind, row) {
-    // Push only if lane id is present
-    if(row.gss_lane_id != "" && row.gss_lane_id != undefined && row.grs_decision != 0 )
-      arr.push(row.gss_lane_id);
-  });
-
+  if(chkdArr) {
+    if(chkdArr.length > 0) {
+      $.each(chkdArr, function(ind, row) {
+        // Push only if lane id is present
+        if(row.gss_lane_id != "" && row.gss_lane_id != undefined && row.grs_decision != 0 )
+          arr.push(row.gss_lane_id);
+      });
+      if(arr.length <= 0) {
+        // Lane id not found
+        showMsg('Download not available for the selected samples!');
+        return false;
+      }
+    }
+    else {
+      // Lane id not found
+      showMsg('Please select a sample!');
+      return false;
+    }
+  }
+  else {
+    return false;
+  }
   var msg;
   var str = '';
-  if(chkdArr.length <= 0) {
-    // No selection made
-    showMsg('Please select a sample!');
-    return;
-  }
-  else if(arr.length <= 0) {
-    // Lane id not found
-    showMsg('Download not available for the selected samples!');
-    return;
-  }
   var url = base_request_url + '/download/' + type;
   $.ajax({
     url: url,
@@ -1282,21 +1456,33 @@ var showHelpVideo = function(type) {
 /************************   GC IMAGES Section    ********************************/
 var gc_img_data = {};
 var show_GC_images = function() {
-  var chkdArr = $('#dg').datagrid('getChecked');
+  var chkdArr = getChecked('#dg');
   var arr = new Array();
-  $.each(chkdArr, function(ind, row) {
-    // Push only if lane id is present
-    if(row.gss_lane_id != "" && row.gss_lane_id != undefined )// && row.grs_decision != 0 )
-      arr.push(row.gss_lane_id);
-  });
-
+  if(chkdArr) {
+    if(chkdArr.length > 0) {
+      $.each(chkdArr, function(ind, row) {
+        // Push only if lane id is present
+        if(row.gss_lane_id && row.gss_lane_id != "") {
+          arr.push(row.gss_lane_id);
+        }
+      });
+      if(arr.length <=0) {
+        // No selection made
+        showMsg('Please select a sample with a lane id!');
+        return false;
+      }
+    }
+    else {
+      // No selection made
+      showMsg('Please select a sample with a lane id!');
+      return false;
+    }
+  }
+  else {
+    return false;
+  }
   var msg;
   var str = '';
-  if(chkdArr.length <= 0 || arr.length <=0) {
-    // No selection made
-    showMsg('Please select a sample with a lane id!');
-    return;
-  }
   var url = base_request_url + '/get_gc_images/';
   $.ajax({
     url: url,
@@ -1562,7 +1748,6 @@ function renderChart(chart_div_id, chart_type, title, chartData) {
     },
     exportEnabled: true,
     exportFileName: chart_div_id,
-    // zoomEnabled: true,
     data: [
       {
          type: chart_type,

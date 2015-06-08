@@ -70,6 +70,7 @@
             <a href="javascript:void(0);" class="easyui-linkbutton" onClick="show_GC_images()" iconCls="icon-graph" plain="true" title="GC % Graph">GC %</a>
             <a href="javascript:void(0);" class="easyui-menubutton" data-options="menu:'#download_menu',iconCls:'icon-download'" plain="true" title="Download Options">Download</a>
             <a href="javascript:void(0);" class="easyui-linkbutton .dv_help" onClick="showHelp()" iconCls="icon-help" plain="true" title="Help">Help</a>
+
             <div class="update_st_form_container hidden">
               <div class="update_st_form">
                 <form action='[% c.request.base %]/bulk_upload' enctype="multipart/form-data" method="post" class="st_update_form" >
@@ -98,10 +99,10 @@
           <div data-options="iconCls:'icon-qc'" >
             <span>QC</span>
             <div>
-              <div onClick="updataDecision(1)" iconCls="icon-ok" plain="true" title="Include selected">Include</div>
-              <div onClick="updataDecision(2)" iconCls="icon-hq" plain="true" title="Mark as High Quality">High Quality</div>
-              <div onClick="updataDecision(0)" iconCls="icon-exclude" plain="true" title="Exclude selected">Exclude</div>
-              <div onClick="updataDecision(-1)" iconCls="icon-progress" plain="true" title="In Progress">In Progress</div>
+              <div onClick="updateDecision(1)" iconCls="icon-ok" plain="true" title="Include selected">Include</div>
+              <div onClick="updateDecision(2)" iconCls="icon-hq" plain="true" title="Mark as High Quality">High Quality</div>
+              <div onClick="updateDecision(0)" iconCls="icon-exclude" plain="true" title="Exclude selected">Exclude</div>
+              <div onClick="updateDecision(-1)" iconCls="icon-progress" plain="true" title="In Progress">In Progress</div>
             </div>
           </div>
           <div onClick="javascript:showUpdateSTWindow()" iconCls="icon-upload" plain="true" title="Update ST">Bulk Upload</div>
@@ -214,7 +215,7 @@
 </div>
 
     <div id="chartDiv">
-      <div class="colorbox_head center head">Summary - Sample counts </div>
+      <div class="colorbox_head center head title">Summary of sample count (with entire GPS dataset) </div>
       <div id="chartContainer">
         <div id="chartSelect" class="draggable">
           <ul>

@@ -4,6 +4,8 @@ use namespace::autoclean;
 use JSON;
 use WWW::Mechanize;
 use DBConnect::Controller::SearchGpsDB;
+use Data::Dumper;
+
 BEGIN { extends 'Catalyst::Controller'; }
 
 =head1 NAME
@@ -208,37 +210,54 @@ sub getSampleCountAuthorised :Path('/count/meta/') {
 sub populateSearch :Path('/populate_search/') {
   my ( $self, $c, @args ) = @_;
   if (scalar @args > 0) {
-    my $colname_search = $args[0];
+    my $colname_search = ();
+    push @$colname_search, $args[0];
 
-    my $prefix = DBConnect::Controller::SearchGpsDB::getColumnPrefix($colname_search);
+    my $search_data = {};
+    my $qString = &DBConnect::Controller::SearchGpsDB::createQuery($search_data, $colname_search, 'search', $c);
     my $map = {};
-    my $q = qq {
-      SELECT
-        DISTINCT $prefix.$colname_search
-        FROM gps_sequence_scape as SC
-        LEFT JOIN gps_sequence_data as S
-            ON SC.gss_lane_id = S.gsd_lane_id
-        LEFT JOIN gps_results as U
-            ON (SC.gss_lane_id = U.grs_lane_id AND SC.gss_sanger_id = U.grs_sanger_id)
-            OR (SC.gss_lane_id IS NULL AND SC.gss_sanger_id = U.grs_sanger_id)
-        LEFT JOIN gps_metadata as M
-            ON SC.gss_public_name = M.gmd_public_name
-    };
 
-    my $sth = $c->config->{gps_dbh}->prepare($q);
-    $sth->execute;
-    # Create a resultset with a groupby clause
-    if($sth->rows > 0) {
-      while(my $row = $sth->fetchrow_hashref) {
+    # Get unique list
+    $qString =~s/SELECT/SELECT DISTINCT/i;
+    my $rs = &DBConnect::Controller::SearchGpsDB::getSearchResults($qString, $c);
+
+    if($rs && $rs->{rows}) {
+      # Process JSON to create an array of hash
+      foreach my $val (@{$rs->{rows}}) {
         # Creating a hash of column value and count
-        push @{$map->{$colname_search}}, $row->{$colname_search};
+        push @{$map->{$colname_search->[0]}}, $val->{$colname_search->[0]};
       }
       # Send back json
       $c->res->body(to_json($map));
     }
     else {
       # If no column found then show the 404 template
-      $c->res->body(to_json({'error' => 'Column name not found'}));
+      $c->res->body(to_json({'error' => 'No data found'}));
+    }
+  }
+  else {
+    # If no arguments then show the 404 template
+    $c->res->body(to_json({'error' => 'Column name argument missing'}));
+  }
+}
+
+# Get all rows for selected columns
+sub getColumnData :Path('/get_column_data/') {
+  my ( $self, $c, @args ) = @_;
+  my $postData = $c->request->body_data;
+  my $colArr = $postData->{select_columns};
+
+  if ($#$colArr >= 0) {
+    my $search_data->{search_input} = ($postData->{search_input} ne '')? decode_json($postData->{search_input}) : ();
+    my $qString = &DBConnect::Controller::SearchGpsDB::createQuery($search_data, $colArr, 'search', $c);
+    my $rs = &DBConnect::Controller::SearchGpsDB::getSearchResults($qString, $c);
+    if($rs) {
+      # Send back json
+      $c->res->body(to_json($rs));
+    }
+    else {
+      # If no column found then show the 404 template
+      $c->res->body(to_json({'error' => 'No data found'}));
     }
   }
   else {

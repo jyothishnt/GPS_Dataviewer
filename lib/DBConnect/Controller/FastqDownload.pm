@@ -64,7 +64,7 @@ sub get_fastq_ftp_url {
 
     my $mech = WWW::Mechanize->new;
     # download from given url
-    
+
     $mech->get($url) or return [];
 
 
@@ -75,8 +75,8 @@ sub get_fastq_ftp_url {
     my $arr = ();
     foreach my $x ( 1 .. $#lines ) {
         my @fields = split( /;/, $lines[$x] );
-        foreach my $f (@fields){ 
-          push(@$arr, "ftp://$f"); 
+        foreach my $f (@fields){
+          push(@$arr, "ftp://$f");
         }
     }
     return $arr;

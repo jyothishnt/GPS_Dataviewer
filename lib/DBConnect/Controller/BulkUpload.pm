@@ -3,8 +3,8 @@ use Moose;
 use namespace::autoclean;
 use JSON;
 use Spreadsheet::XLSX;
-use Spreadsheet::ParseExcel;
-use Text::CSV;
+# use Spreadsheet::ParseExcel;
+# use Text::CSV;
 use Try::Tiny;
 
 BEGIN { extends 'Catalyst::Controller'; }
@@ -56,7 +56,7 @@ sub bulkUpload :Path('/bulk_upload/') {
     $parsedData = parseXLS($upfile->fh);
   }
   elsif($extension eq "csv") {
-    $parsedData =parseCSV($upfile->fh);
+    $parsedData = parseCSV($upfile->fh);
   }
 
   my $q;

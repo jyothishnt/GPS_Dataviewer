@@ -47,7 +47,6 @@ sub updateDecision : Path('/gps/update/decision') {
   $q2 = qq{UPDATE gps_results SET grs_decision = ?, grs_updated_on = now() WHERE grs_sanger_id = ? AND grs_lane_id IS NULL};
   $sth2 = $c->config->{gps_dbh}->prepare($q2) or die "Could not save! Error while preparing query - $!";
   my $success = {};
-
   foreach my $row (@{$postData}) {
     try {
       # If both sanger and lane ids are present in the post data
@@ -138,9 +137,8 @@ sub updateDecision : Path('/gps/update/decision') {
             $c->res->body(to_json($res));
             return;
           }
-
           # For counting the total no. of rows updated. This include all the duplicate rows for each public name in the postData list
-          $success->{rows} = ($sth->rows())?$sth->rows():0;
+          $success->{rows} += ($sth->rows())?$sth->rows():0;
           $success->{final_sample_outcome} = $sample_outcome;
 
           # Update sample outcome
