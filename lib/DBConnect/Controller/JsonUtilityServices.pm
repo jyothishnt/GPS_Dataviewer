@@ -4,7 +4,6 @@ use namespace::autoclean;
 use JSON;
 use WWW::Mechanize;
 use DBConnect::Controller::SearchGpsDB;
-use Data::Dumper;
 
 BEGIN { extends 'Catalyst::Controller'; }
 

@@ -731,33 +731,11 @@ $(document).ready(function(){
   showGrid('init');
   // Load the dragging pane div with column name boxes for drag and drop
   load_div_dgcolumns();
-
-$('.datagrid-pager').find('a.l-btn').click(function() {
-  console.log($(this));
-  console.log($(this).find('span.l-btn-empty').attr('class').split(' '))
-});
-
-$('.logo').tooltip({
-  content: function() {
-    console.log('a')
-    return "Om Amma"
-  }
-})
-  $('.datagrid-pager').find('a.l-btn').tooltip({
-      content: function(){
-          var cc = $(this).find('span.l-btn-icon').attr('class').split(' ');
-          var icon = cc[1].split('-')[1];
-          return icon + ' page';
-      }
-  });
-
 });
 
 function changePaginationText(text) {
   $('div.pagination div.pagination-info').html(text);
 }
-
-
 
 // Populate search on search type or search column change
 $(document).on('change', "select[name='eq'], select[name='columns']", function () {
@@ -1237,7 +1215,7 @@ function st_update_validator() {
     showMsg('Please select your file to upload!');
     return false;
   }
-  var reg = /\.xlsx$/;
+  var reg = /\.xlsx$|\.xls$|\.csv$/;
   if(!reg.test($('#st_update_file').val())) {
     showMsg('Invalid file. Only .xlsx files are valid!');
     return false;

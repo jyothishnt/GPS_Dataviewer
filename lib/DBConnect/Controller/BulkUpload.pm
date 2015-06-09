@@ -3,8 +3,8 @@ use Moose;
 use namespace::autoclean;
 use JSON;
 use Spreadsheet::XLSX;
-# use Spreadsheet::ParseExcel;
-# use Text::CSV;
+use Spreadsheet::ParseExcel;
+use Text::CSV;
 use Try::Tiny;
 
 BEGIN { extends 'Catalyst::Controller'; }
