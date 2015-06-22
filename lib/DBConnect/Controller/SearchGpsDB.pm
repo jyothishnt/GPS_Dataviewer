@@ -174,7 +174,7 @@ sub getDownloadResults {
     if($sth->rows > 0) {
       while(my $row = $sth->fetchrow_hashref) {
 
-        if(%$publicNameRepeat_metadataMap && $publicNameRepeat_metadataMap->{$row->{gss_public_name}}) {
+        if($row->{gss_public_name} && $publicNameRepeat_metadataMap && $publicNameRepeat_metadataMap->{$row->{gss_public_name}}) {
           # Merge the metadata into each row if metedata is defined.
           # This is done by converting them into a list context and then assigning it to a hash
           # which will convert back to a hash. The first hash values will be overwritten by the second hash values.
