@@ -58,15 +58,15 @@ var showGrid = function(fl){
     //sortName: 'gsd_public_name',
     //sortOrder: 'desc',
     rowStyler: function(index,row){
-      if (row.grs_decision == "Fail" && row.grs_decision != ""){
+      if (row.grs_gps_qc == "Fail" && row.grs_gps_qc != ""){
         return 'color:#cc0000;'; // return inline style
         // the function can return predefined css class and inline style
         // return {class:'r1', style:{'color:#fff'}};
       }
-      else if (row.grs_decision == "Pending" && row.grs_decision != ""){
+      else if (row.grs_gps_qc == "Pending" && row.grs_gps_qc != ""){
         return 'font-weight:bold;color:teal'; // return inline style
       }
-      else if (row.grs_decision == "Non Pneumo" && row.grs_decision != ""){
+      else if (row.grs_gps_qc == "Non Pneumo" && row.grs_gps_qc != ""){
         return 'color:#ccc'; // return inline style
       }
     },
@@ -109,10 +109,10 @@ var showGrid = function(fl){
     onBeforeEdit: function(index, rowData) {
       // Storing string data to check whether there are changes onAfterEdit
 
-      // inititialize decision and comments as they are not found in the rowData
+      // inititialize gps_qc and comments as they are not found in the rowData
       // So that it works while checking for any row edits in 'onAfterEdit'
-      if(!rowData.grs_decision) {
-        rowData.grs_decision = "";
+      if(!rowData.grs_gps_qc) {
+        rowData.grs_gps_qc = "";
       }
       if(!rowData.grs_comments) {
         rowData.grs_comments = "";
@@ -343,16 +343,16 @@ var exportData = function(extn) {
     var arr = new Array();
     // Decision flag is used to check if the selected row has been excluded or not. Excluded data are not given for download
     // Currently allowing all download. So below statement is set to false
-    var all_decision_0 = false;
+    var allGpsQCFail = false;
     jQuery.each(chkdArr, function(ind, row) {
-      // if(row.grs_decision != 0){
-      //   all_decision_0 = false;
-      // }
+      if(row.grs_gps_qc != "Fail"){
+        allGpsQCFail = false;
+      }
       var t = {};
       t['gss_sanger_id'] = row.gss_sanger_id;
       arr.push(t);
-    })
-    if(all_decision_0) {
+    });
+    if(allGpsQCFail) {
       showMsg('Samples you have selected are categorized as not good and thus not available for download!');
       return;
     }
@@ -517,11 +517,11 @@ function JSONtoCSV(arrData) {
 }
 
 // Function to include all checked rows
-var updateDecision = function(decisionVal) {
+var updateDecision = function(gpsQCVal) {
   $('#dg').edatagrid('acceptChanges');
 
   if (selectAllMeansSelectEntireData) {
-    updateAllDecision(decisionVal);
+    updateAllDecision(gpsQCVal);
   }
   else {
     var chkdArr = getChecked('#dg');
@@ -534,7 +534,7 @@ var updateDecision = function(decisionVal) {
         t.gss_public_name = row.gss_public_name;
         arr.push(t);
       });
-      sendForDecisionUpdate(arr, decisionVal);
+      sendForDecisionUpdate(arr, gpsQCVal);
     }
   }
 };
@@ -550,7 +550,7 @@ var getChecked = function(gridEleId){
   }
 
 }
-var updateAllDecision = function(decisionVal) {
+var updateAllDecision = function(gpsQCVal) {
   // Get search input if search is active
   var search_input;
   if(search_query && search_query.search_input) {
@@ -572,7 +572,7 @@ var updateAllDecision = function(decisionVal) {
         showMsg(str,'danger');
       }
       else {
-        sendForDecisionUpdate(data.rows, decisionVal)
+        sendForDecisionUpdate(data.rows, gpsQCVal)
       }
     },
     error: function(jqXHR, textStatus, errorThrown) {
@@ -588,7 +588,7 @@ var updateAllDecision = function(decisionVal) {
   });
 };
 
-var sendForDecisionUpdate = function(dataArr, decisionVal) {
+var sendForDecisionUpdate = function(dataArr, gpsQCVal) {
   if(dataArr.length > 0) {
     $.ajax({
       url: base_request_url + '/gps/update/decision',
@@ -596,7 +596,7 @@ var sendForDecisionUpdate = function(dataArr, decisionVal) {
       cache:false,
       data: {
         'data' : JSON.stringify(dataArr),
-        'type' : decisionVal
+        'type' : gpsQCVal
       },
       dataType: 'JSON',
       beforeSend: block_screen('Updating data'),
@@ -1295,7 +1295,7 @@ function downloadZipFiles(type) {
     if(chkdArr.length > 0) {
       $.each(chkdArr, function(ind, row) {
         // Push only if lane id is present
-        if(row.gss_lane_id != "" && row.gss_lane_id != undefined && row.grs_decision != 0 )
+        if(row.gss_lane_id != "" && row.gss_lane_id != undefined && row.grs_gps_qc != 0 )
           arr.push(row.gss_lane_id);
       });
       if(arr.length <= 0) {
