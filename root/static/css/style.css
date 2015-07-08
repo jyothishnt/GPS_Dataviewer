@@ -104,7 +104,7 @@ div.help_eq_content td{
     height: 100%;
 }
 .datagrid-row-selected {
-	text-shadow: 1px 1px 0.2px #ccc;
+	text-shadow: 0px 0px 0px #ccc;
   background: lightyellow;
   color: #000;
 }
