@@ -346,7 +346,7 @@ sub createQuery {
   $search_str_map->{download_condition} = '';
   ###### Currently allowing all data to download
   # if($download_type=~/download/) {
-  #    $search_str_map->{download_condition} = " AND U.grs_decision <> 0 ";
+  #    $search_str_map->{download_condition} = " AND U.grs_gps_qc != 'Fail' ";
   # }
 
   ######### $search_substr is used for counting the total

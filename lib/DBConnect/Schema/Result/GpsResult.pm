@@ -50,7 +50,7 @@ __PACKAGE__->table("gps_results");
   is_nullable: 1
   size: 30
 
-=head2 grs_decision
+=head2 grs_gps_qc
 
   data_type: 'integer'
   is_nullable: 1
@@ -93,8 +93,8 @@ __PACKAGE__->add_columns(
   { data_type => "varchar", is_nullable => 1, size => 30 },
   "grs_lane_id",
   { data_type => "varchar", is_nullable => 1, size => 30 },
-  "grs_decision",
-  { data_type => "integer", is_nullable => 1 },
+  "grs_gps_qc",
+  { data_type => "text", is_nullable => 1 },
   "grs_comments",
   { data_type => "text", is_nullable => 1 },
   "grs_in_silico_st",

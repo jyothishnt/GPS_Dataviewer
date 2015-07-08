@@ -62,9 +62,9 @@ sub updateDecision : Path('/gps/update/decision') {
     $type_text = "Unknown";
   }
 
-  $q1 = qq{UPDATE gps_results SET grs_decision = ?, grs_updated_on = now() WHERE grs_sanger_id = ? AND grs_lane_id = ?};
+  $q1 = qq{UPDATE gps_results SET grs_gps_qc = ?, grs_updated_on = now() WHERE grs_sanger_id = ? AND grs_lane_id = ?};
   $sth1 = $c->config->{gps_dbh}->prepare($q1) or die "Could not save! Error while preparing query - $!";
-  $q2 = qq{UPDATE gps_results SET grs_decision = ?, grs_updated_on = now() WHERE grs_sanger_id = ? AND grs_lane_id IS NULL};
+  $q2 = qq{UPDATE gps_results SET grs_gps_qc = ?, grs_updated_on = now() WHERE grs_sanger_id = ? AND grs_lane_id IS NULL};
   $sth2 = $c->config->{gps_dbh}->prepare($q2) or die "Could not save! Error while preparing query - $!";
   my $success = {};
   foreach my $row (@{$postData}) {
@@ -129,13 +129,13 @@ sub updateDecision : Path('/gps/update/decision') {
           my $sample_outcome;
           # Creating a string for mysql string search with all the sanger ids for the given public name
           my $t_sam_str = '"'.join('","',@$t_arr).'"';
-          $q = qq{SELECT grs_decision FROM gps_results where grs_sanger_id IN ($t_sam_str)};
+          $q = qq{SELECT grs_gps_qc FROM gps_results where grs_sanger_id IN ($t_sam_str)};
           $sth = $c->config->{gps_dbh}->prepare($q) or die "Could not save! Error while preparing query - $!";
           $sth->execute() or die "Could not save! Error while preparing query - $!";
           if($sth->rows() > 0) {
             while(my $arr = $sth->fetchrow_arrayref()) {
               my $dec = $arr->[0];
-              # If there is atleast one sample with decision 1, then sample is completed
+              # If there is atleast one sample with decision 1/2/3, then sample is completed
               if($dec eq "Pass" || $dec eq "Pass Plus" || $dec eq "Non Pneumo") {
                 $sample_outcome = 'Sample completed';
                 last;

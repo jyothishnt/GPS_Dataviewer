@@ -56,7 +56,7 @@ sub getSampleCount :Path('/json/meta/') {
       AND c.gco_location = m.gmd_country
       AND s.gss_sanger_id = r.grs_sanger_id
       AND r.grs_lane_id = s.gss_lane_id
-      AND r.grs_decision<>0
+      AND r.grs_gps_qc != "Fail"
       AND m.$colname_search IS NOT NULL
       AND m.$colname_search <> ""
       GROUP BY $colname_search;
