@@ -99,10 +99,11 @@
           <div data-options="iconCls:'icon-qc'" >
             <span>QC</span>
             <div>
-              <div onClick="updateDecision(1)" iconCls="icon-ok" plain="true" title="Include selected">Include</div>
-              <div onClick="updateDecision(2)" iconCls="icon-hq" plain="true" title="Mark as High Quality">High Quality</div>
-              <div onClick="updateDecision(0)" iconCls="icon-exclude" plain="true" title="Exclude selected">Exclude</div>
-              <div onClick="updateDecision(-1)" iconCls="icon-progress" plain="true" title="In Progress">In Progress</div>
+              <div onClick="updateDecision(1)" iconCls="icon-ok" plain="true" title="QC Pass">Pass</div>
+              <div onClick="updateDecision(2)" iconCls="icon-hq" plain="true" title="Mark as High Quality - Pass Plus">Pass Plus</div>
+              <div onClick="updateDecision(0)" iconCls="icon-exclude" plain="true" title="Mark as failed">Fail</div>
+              <div onClick="updateDecision(-1)" iconCls="icon-progress" plain="true" title="In Progress/Pending">Pending</div>
+              <div onClick="updateDecision(3)" iconCls="icon-minus" plain="true" title="Mark as Non Pneumo">Non Pneumo</div>
             </div>
           </div>
           <div onClick="javascript:showUpdateSTWindow()" iconCls="icon-upload" plain="true" title="Update ST">Bulk Upload</div>

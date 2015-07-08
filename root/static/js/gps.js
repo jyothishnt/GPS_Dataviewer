@@ -58,13 +58,16 @@ var showGrid = function(fl){
     //sortName: 'gsd_public_name',
     //sortOrder: 'desc',
     rowStyler: function(index,row){
-      if (row.grs_decision == 0 && row.grs_decision != ""){
+      if (row.grs_decision == "Fail" && row.grs_decision != ""){
         return 'color:#cc0000;'; // return inline style
         // the function can return predefined css class and inline style
         // return {class:'r1', style:{'color:#fff'}};
       }
-      else if (row.grs_decision == -1 && row.grs_decision != ""){
+      else if (row.grs_decision == "Pending" && row.grs_decision != ""){
         return 'font-weight:bold;color:teal'; // return inline style
+      }
+      else if (row.grs_decision == "Non Pneumo" && row.grs_decision != ""){
+        return 'color:#ccc'; // return inline style
       }
     },
     pagination: true,

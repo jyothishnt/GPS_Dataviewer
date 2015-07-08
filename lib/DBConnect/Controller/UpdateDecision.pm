@@ -42,6 +42,26 @@ sub updateDecision : Path('/gps/update/decision') {
   my ($q1, $q2);
   my ($sth1, $sth2);
   my $now;
+  my $type_text;
+  if($type == -1) {
+    $type_text = "Pending";
+  }
+  elsif($type == 0) {
+    $type_text = "Fail";
+  }
+  elsif($type == 1) {
+    $type_text = "Pass";
+  }
+  elsif($type == 2) {
+    $type_text = "Pass Plus";
+  }
+  elsif($type == 3) {
+    $type_text = "Non Pneumo";
+  }
+  else {
+    $type_text = "Unknown";
+  }
+
   $q1 = qq{UPDATE gps_results SET grs_decision = ?, grs_updated_on = now() WHERE grs_sanger_id = ? AND grs_lane_id = ?};
   $sth1 = $c->config->{gps_dbh}->prepare($q1) or die "Could not save! Error while preparing query - $!";
   $q2 = qq{UPDATE gps_results SET grs_decision = ?, grs_updated_on = now() WHERE grs_sanger_id = ? AND grs_lane_id IS NULL};
@@ -53,7 +73,7 @@ sub updateDecision : Path('/gps/update/decision') {
       if(defined $row->{gss_lane_id} && defined $row->{gss_sanger_id}) {
         $rs = $schema->search({ 'grs_lane_id' => $row->{gss_lane_id} });
         if($rs->count) {
-          $sth1->execute($type, $row->{gss_sanger_id}, $row->{gss_lane_id}) or die "Could not save! Error while executing query - $!";
+          $sth1->execute($type_text, $row->{gss_sanger_id}, $row->{gss_lane_id}) or die "Could not save! Error while executing query - $!";
         }
         else {
           $res = {'err' => 'Error occured while saving', 'errMsg' => qq{Lane ID not found in the database}};
@@ -66,7 +86,7 @@ sub updateDecision : Path('/gps/update/decision') {
       elsif(defined $row->{gss_sanger_id}) {
         $rs = $schema->search({ 'grs_sanger_id' => $row->{gss_sanger_id}});
         if($rs->count) {
-          $sth2->execute($type, $row->{gss_sanger_id}) or die "Could not save! Error while executing query - $!";
+          $sth2->execute($type_text, $row->{gss_sanger_id}) or die "Could not save! Error while executing query - $!";
           # For counting the total no. of rows updated. This include all the duplicate rows for each public name in the postData list
         }
         else {
@@ -116,16 +136,16 @@ sub updateDecision : Path('/gps/update/decision') {
             while(my $arr = $sth->fetchrow_arrayref()) {
               my $dec = $arr->[0];
               # If there is atleast one sample with decision 1, then sample is completed
-              if($dec == 1 || $dec == 2) {
+              if($dec eq "Pass" || $dec eq "Pass Plus" || $dec eq "Non Pneumo") {
                 $sample_outcome = 'Sample completed';
                 last;
               }
-              elsif($dec == -1) {
+              elsif($dec eq "Pending") {
                 # If there is atleast one sample with decision -1, then sample is in progress
                 $sample_outcome = 'Sample in progress';
                 last;
               }
-              elsif($dec == 0) {
+              elsif($dec eq "Fail") {
                 # If decision(in db)  = 0 and current decision = 1, then sample completed. Else failed
                 ($type == 1)?$sample_outcome = 'Sample Completed' : $sample_outcome = 'Sample failed';
               }
