@@ -24,30 +24,28 @@ Catalyst Controller.
 =cut
 # Create sql in-string
 sub createSqlString {
-  my $postData = shift;
+  my $row = shift;
   my $strArr = ();
   my $conditionStrArr = ();
 
   my $qstring;
   my $final_query = "UPDATE gps_results SET";
 
-  foreach my $row (@{$postData}) {
-    for my $k (keys %$row) {
-      if(defined $row->{$k}) {
-        if($k ne "gss_lane_id" && $k ne "gss_sanger_id") {
-          if ($row->{$k} eq "") {
-            push(@$strArr, qq{ $k = NULL });
-          }
-          else {
-            push(@$strArr, qq{ $k = "$row->{$k}" });
-          }
+  for my $k (keys %$row) {
+    if(defined $row->{$k}) {
+      if($k ne "gss_lane_id" && $k ne "gss_sanger_id") {
+        if ($row->{$k} eq "") {
+          push(@$strArr, qq{ $k = NULL });
         }
-        elsif ($k eq "gss_lane_id" && $row->{$k} ne "") {
-          push(@$conditionStrArr, qq{ grs_lane_id = "$row->{$k}" });
+        else {
+          push(@$strArr, qq{ $k = "$row->{$k}" });
         }
-        elsif ($k eq "gss_sanger_id" && $row->{$k} ne "") {
-          push(@$conditionStrArr, qq{ grs_sanger_id = "$row->{$k}" });
-        }
+      }
+      elsif ($k eq "gss_lane_id" && $row->{$k} ne "") {
+        push(@$conditionStrArr, qq{ grs_lane_id = "$row->{$k}" });
+      }
+      elsif ($k eq "gss_sanger_id" && $row->{$k} ne "") {
+        push(@$conditionStrArr, qq{ grs_sanger_id = "$row->{$k}" });
       }
     }
   }
@@ -76,12 +74,12 @@ sub updateComments : Path('/gps/update/comments') {
   my $sth;
   my $now;
 
-  # Create quesry in-string to inject into the mysql query string
-  my $qstring = createSqlString($postData);
-
   foreach my $row (@{$postData}) {
     try {
-      #print Dumper $rs;
+
+      # Create quesry in-string to inject into the mysql query string
+      my $qstring = createSqlString($row);
+
       # There can be a sample without a lane id. So if its not found in below command, we should
       # get them using sanger id.
       if(defined $row->{gss_lane_id} && defined $row->{gss_sanger_id}) {
@@ -92,7 +90,6 @@ sub updateComments : Path('/gps/update/comments') {
       }
       else {
         $res = {'err' => 'Error occured while saving', 'errMsg' => qq{Sanger ID or Lane ID missing. Could not update!}};
-        $c->res->body(to_json($res));
       }
 
       if($rs->count) {
@@ -100,12 +97,9 @@ sub updateComments : Path('/gps/update/comments') {
       }
       else {
         $res = {'err' => 'Error occured while saving', 'errMsg' => qq{Sanger ID or Lane ID not found in the database. Could not update!}};
-        $c->res->body(to_json($res));
       }
-
     }
     catch {
-      #print Dumper $_;
       $c->config->{gps_dbh}->rollback;
       $res = {'err' => 'Error occured while saving', 'errMsg' => qq{$_}};
       $c->res->body(to_json($res));
