@@ -165,9 +165,11 @@ sub uploadAntibiotic {
   eval {
     foreach my $lane (keys %$parsedData) {
       my $rows_affected;
-      my $row = $parsedData->{$lane};
+      my $parsedDataRow = $parsedData->{$lane};
       try {
-        my $rowString = join(',', @$row );
+        my $row = ();
+        @$row = map { $_ eq "" ? 'null' : $_ } @$parsedDataRow;
+        my $rowString = join(',',  @$row);
 
         # Create quesry in-string to inject into the mysql query string
         my $q = qq{
@@ -371,8 +373,7 @@ sub uploadAntibiotic {
               gra_tetS_3_X92946 = $row->[95],
               gra_vgaA_1_M90056 = $row->[96]
         };
-        use Data::Dumper;
-print Dumper $q;
+
         $rows_affected = $c->config->{gps_dbh}->do($q) or die $!;
         if($rows_affected == 0  or $rows_affected eq '0E0') {
           push @{$res->{rows_not_updated}}, $lane;

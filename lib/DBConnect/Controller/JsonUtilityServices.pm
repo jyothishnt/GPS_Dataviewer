@@ -7,6 +7,7 @@ use Spreadsheet::XLSX;
 use Spreadsheet::ParseExcel;
 use Text::CSV;
 use DBConnect::Controller::SearchGpsDB;
+use Try::Tiny;
 
 BEGIN { extends 'Catalyst::Controller'; }
 
@@ -281,7 +282,7 @@ sub parseXLSX {
         my $lane = $sheet->{Cells}[$row][0]->{Val};
         if (defined $lane) {
           my $new_value = $sheet->{Cells}[$row][$col]->{Val};
-          push(@{$parsedData->{$lane}}, (defined $new_value) ? $new_value  : "null");
+          push (@{$parsedData->{$lane}}, (defined $new_value) ? $new_value  : "");
         }
       }
     }
@@ -297,17 +298,26 @@ sub parseXLS {
   if ( !defined $workbook ) {
       die $parser->error(), ".\n";
   }
+
   for my $worksheet ( $workbook->worksheets() ) {
     my ( $row_min, $row_max ) = $worksheet->row_range();
-    for my $row ( $row_min+1 .. $row_max ) {
+    my ( $col_min, $col_max ) = $worksheet->col_range();
 
+    for my $row ( $row_min+1 .. $row_max ) {
       my $lane = $worksheet->get_cell( $row, 0 )->value();
-      my $value = $worksheet->get_cell( $row, 1 )->value();
-      if($lane) {
-        $parsedData->{$lane} = (defined $value)? $value : '';
+      for my $col ( $col_min + 1 .. $col_max ) {
+        my $cell = $worksheet->get_cell( $row, $col );
+        my $value = '';
+        if($cell) {
+          $value = $cell->value();
+        }
+        if($lane) {
+          push (@{$parsedData->{$lane}}, (defined $value)? $value : '');
+        }
       }
     }
   }
+
   return $parsedData;
 }
 
@@ -319,11 +329,16 @@ sub parseCSV {
   my @rows;
   my $csv = Text::CSV->new ( { binary => 1 } )  # should set binary attribute.
                  or die "Cannot use CSV: ".Text::CSV->error_diag ();
-  <$fh>;
-  while ( my $row = $csv->getline( $fh ) ) {
-    if (defined $row->[0]) {
-      $parsedData->{$row->[0]} = (defined $row->[1])? $row->[1] : ''
+  my $col_header_flag = 1;
+  while ( my $row = $csv->getline( $fh )) {
+    if (!$col_header_flag) {
+      foreach my $val (@$row[1 .. $#$row]) {
+        if (defined $row->[0]) {
+          push @{$parsedData->{$row->[0]}}, (defined $val)? $val : '';
+        }
+      }
     }
+    $col_header_flag = 0;
   }
   $csv->eof or $csv->error_diag();
   close $fh;
