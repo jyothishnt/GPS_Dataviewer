@@ -3,6 +3,9 @@ use Moose;
 use namespace::autoclean;
 use JSON;
 use WWW::Mechanize;
+use Spreadsheet::XLSX;
+use Spreadsheet::ParseExcel;
+use Text::CSV;
 use DBConnect::Controller::SearchGpsDB;
 
 BEGIN { extends 'Catalyst::Controller'; }
@@ -263,6 +266,70 @@ sub getColumnData :Path('/get_column_data/') {
     # If no arguments then show the 404 template
     $c->res->body(to_json({'error' => 'Column name argument missing'}));
   }
+}
+
+sub parseXLSX {
+  my $fh = shift || die "Parse file not specified";
+  my $parsedData = {};
+  my $excel = Spreadsheet::XLSX -> new ($fh);
+
+  foreach my $sheet (@{$excel -> {Worksheet}}) {
+    $sheet -> {MaxRow} ||= $sheet -> {MinRow};
+     foreach my $row ($sheet -> {MinRow} +1 .. $sheet -> {MaxRow}) {
+      $sheet -> {MaxCol} ||= $sheet -> {MinCol};
+      foreach my $col ($sheet -> {MinCol} + 1 ..  $sheet -> {MaxCol}) {
+        my $lane = $sheet->{Cells}[$row][0]->{Val};
+        if (defined $lane) {
+          my $new_value = $sheet->{Cells}[$row][$col]->{Val};
+          push(@{$parsedData->{$lane}}, (defined $new_value) ? $new_value  : "null");
+        }
+      }
+    }
+  }
+  return $parsedData;
+}
+
+sub parseXLS {
+  my $fh = shift || die "Parse file not specified";
+  my $parser   = Spreadsheet::ParseExcel->new();
+  my $workbook = $parser->parse($fh);
+  my $parsedData = {};
+  if ( !defined $workbook ) {
+      die $parser->error(), ".\n";
+  }
+  for my $worksheet ( $workbook->worksheets() ) {
+    my ( $row_min, $row_max ) = $worksheet->row_range();
+    for my $row ( $row_min+1 .. $row_max ) {
+
+      my $lane = $worksheet->get_cell( $row, 0 )->value();
+      my $value = $worksheet->get_cell( $row, 1 )->value();
+      if($lane) {
+        $parsedData->{$lane} = (defined $value)? $value : '';
+      }
+    }
+  }
+  return $parsedData;
+}
+
+sub parseCSV {
+  my $fh = shift || die "Parse file not specified";
+  my $parsedData = {};
+  my @arr;
+
+  my @rows;
+  my $csv = Text::CSV->new ( { binary => 1 } )  # should set binary attribute.
+                 or die "Cannot use CSV: ".Text::CSV->error_diag ();
+  <$fh>;
+  while ( my $row = $csv->getline( $fh ) ) {
+    if (defined $row->[0]) {
+      $parsedData->{$row->[0]} = (defined $row->[1])? $row->[1] : ''
+    }
+  }
+  $csv->eof or $csv->error_diag();
+  close $fh;
+  $csv->eol ("\r\n");
+
+  return $parsedData;
 }
 
 =encoding utf8

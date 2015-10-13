@@ -105,7 +105,24 @@ sub searchGPSData :Path('/gps/json/') {
 
 sub getColumnPrefix {
   my $col = shift;
-  return ($col =~ /^gmd/)? 'M': (($col =~ /^gsd/)? 'S': (($col =~ /^gss/)? 'SC':'U'));
+  if ($col =~/^gmd/) {
+    return 'M';
+  }
+  if ($col =~/^gsd/) {
+    return 'S';
+  }
+  if ($col =~/^gss/) {
+    return 'SC';
+  }
+  if ($col =~/^grs/) {
+    return 'U';
+  }
+  if ($col =~/^gra/) {
+    return 'A';
+  }
+  if ($col =~/^grm/) {
+    return 'ML';
+  }
 }
 
 sub getSearchResults() {
@@ -221,6 +238,10 @@ sub createQuery {
                           LEFT JOIN gps_results as U
                               ON (SC.gss_lane_id = U.grs_lane_id AND SC.gss_sanger_id = U.grs_sanger_id)
                               OR (SC.gss_lane_id IS NULL AND SC.gss_sanger_id = U.grs_sanger_id)
+                          LEFT JOIN gps_results_mlst as ML
+                              ON SC.gss_lane_id = ML.grm_lane_id
+                          LEFT JOIN gps_results_antibiotic as A
+                              ON SC.gss_lane_id = A.gra_lane_id
                           LEFT JOIN gps_metadata as M
                               ON (SC.gss_public_name = M.gmd_public_name)
                             };

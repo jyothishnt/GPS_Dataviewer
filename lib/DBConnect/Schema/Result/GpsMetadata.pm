@@ -109,6 +109,11 @@ __PACKAGE__->table("gps_metadata");
   data_type: 'text'
   is_nullable: 1
 
+=head2 gmd_age_day
+
+  data_type: 'text'
+  is_nullable: 1
+
 =head2 gmd_clinical_manifest
 
   data_type: 'text'
@@ -385,6 +390,8 @@ __PACKAGE__->add_columns(
   { data_type => "text", is_nullable => 1 },
   "gmd_age_month",
   { data_type => "text", is_nullable => 1 },
+  "gmd_age_day",
+  { data_type => "text", is_nullable => 1 },
   "gmd_clinical_manifest",
   { data_type => "text", is_nullable => 1 },
   "gmd_source",
@@ -498,8 +505,8 @@ __PACKAGE__->add_columns(
 __PACKAGE__->set_primary_key("gmd_public_name");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07039 @ 2014-07-04 14:35:02
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:picTtWdD/VGqq+Isaekkig
+# Created by DBIx::Class::Schema::Loader v0.07043 @ 2015-10-08 17:09:03
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:06FnSnD/O0N4yTZPLudahQ
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

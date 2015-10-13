@@ -280,12 +280,21 @@ hr {
 	border: 0; height: 0; border-top: 1px solid rgba(0, 0, 0, 0.1); border-bottom: 1px solid rgba(255, 255, 255, 0.3);
 }
 .update_st_form_container {
-	width: 98%;
+	width: 400px;
 }
 .update_st_form {
 	margin: 10px;
 	font-size: 12px;
 }
+
+.bulk-upload-column-display {
+	/*display: inline;*/
+	overflow-x: auto;
+    /*overflow-y: hidden;*/
+    white-space:nowrap;
+    word-spacing:10px;
+}
+
 .closebutton {
 	border:1px solid black; padding: 0px 1px 2px 2px; line-height: 9px; cursor: pointer; float: right;
 	font-weight: bold;

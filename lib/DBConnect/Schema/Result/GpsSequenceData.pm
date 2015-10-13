@@ -47,7 +47,7 @@ __PACKAGE__->table("gps_sequence_data");
 =head2 gsd_sanger_id
 
   data_type: 'varchar'
-  is_nullable: 0
+  is_nullable: 1
   size: 30
 
 =head2 gsd_public_name
@@ -136,7 +136,7 @@ __PACKAGE__->add_columns(
   "gsd_lane_id",
   { data_type => "varchar", is_nullable => 0, size => 30 },
   "gsd_sanger_id",
-  { data_type => "varchar", is_nullable => 0, size => 30 },
+  { data_type => "varchar", is_nullable => 1, size => 30 },
   "gsd_public_name",
   { data_type => "text", is_nullable => 0 },
   "gsd_accessionfind_no_duplicates",
@@ -172,8 +172,8 @@ __PACKAGE__->add_columns(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07039 @ 2014-07-04 14:35:02
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:EaICYSKSQySoPBu1crxRyQ
+# Created by DBIx::Class::Schema::Loader v0.07043 @ 2015-10-08 17:09:03
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:notxX32fqSNbSLcoFb3m2w
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

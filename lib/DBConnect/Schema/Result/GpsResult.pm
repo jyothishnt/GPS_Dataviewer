@@ -52,7 +52,7 @@ __PACKAGE__->table("gps_results");
 
 =head2 grs_gps_qc
 
-  data_type: 'integer'
+  data_type: 'text'
   is_nullable: 1
 
 =head2 grs_comments
@@ -62,7 +62,7 @@ __PACKAGE__->table("gps_results");
 
 =head2 grs_in_silico_st
 
-  data_type: 'integer'
+  data_type: 'text'
   is_nullable: 1
 
 =head2 grs_in_silico_serotype
@@ -86,6 +86,26 @@ __PACKAGE__->table("gps_results");
   data_type: 'text'
   is_nullable: 1
 
+=head2 grs_baps_1
+
+  data_type: 'text'
+  is_nullable: 1
+
+=head2 grs_baps_2
+
+  data_type: 'text'
+  is_nullable: 1
+
+=head2 grs_vaccine_status
+
+  data_type: 'text'
+  is_nullable: 1
+
+=head2 grs_vaccine_period
+
+  data_type: 'text'
+  is_nullable: 1
+
 =cut
 
 __PACKAGE__->add_columns(
@@ -98,7 +118,7 @@ __PACKAGE__->add_columns(
   "grs_comments",
   { data_type => "text", is_nullable => 1 },
   "grs_in_silico_st",
-  { data_type => "integer", is_nullable => 1 },
+  { data_type => "text", is_nullable => 1 },
   "grs_in_silico_serotype",
   { data_type => "text", is_nullable => 1 },
   "grs_sample_outcome",
@@ -108,13 +128,13 @@ __PACKAGE__->add_columns(
     data_type => "datetime",
     datetime_undef_if_invalid => 1,
     is_nullable => 1,
-  },,
+  },
   "grs_dbupdate_comments",
   { data_type => "text", is_nullable => 1 },
   "grs_baps_1",
-  { data_type => "integer", is_nullable => 1 },
+  { data_type => "text", is_nullable => 1 },
   "grs_baps_2",
-  { data_type => "integer", is_nullable => 1 },
+  { data_type => "text", is_nullable => 1 },
   "grs_vaccine_status",
   { data_type => "text", is_nullable => 1 },
   "grs_vaccine_period",
@@ -122,8 +142,8 @@ __PACKAGE__->add_columns(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07039 @ 2014-07-04 14:35:02
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:tZ7aoLU9Ueieh1wqzoQByw
+# Created by DBIx::Class::Schema::Loader v0.07043 @ 2015-10-08 17:09:03
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:h8aQel3d3/SPIvS26kRr7g
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

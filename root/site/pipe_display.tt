@@ -77,6 +77,8 @@
                     <h2>Select upload type </h2>
                     <select name="st_update_type" class="form-control">
                       <option value="">Select Upload Type</option>
+                      <option value="mlst">MLST Profiles</option>
+                      <option value="antibiotic">Antibiotic Profiles</option>
                       <option value="grs_in_silico_st">In Silico Sequence Type</option>
                       <option value="grs_in_silico_serotype">In Silico Serotype</option>
                       <option value="grs_baps_1">BAPS_1</option>

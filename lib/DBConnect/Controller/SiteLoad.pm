@@ -43,6 +43,20 @@ sub gpsDataDisplayMain :Path('/gps/data/') :Args(0) {
   push(@col_arr, @col_arr_gup);
   push(@{$col}, [@col_arr_gup]);
 
+  # Pushing columns from gps results table
+  my $schema_gmlst = $c->model('gps::GpsResultsMlst');
+  my @col_arr_gmlst = $schema_gmlst->result_source->columns;
+  splice (@col_arr_gmlst,0,1);
+  push(@col_arr, @col_arr_gmlst);
+  push(@{$col}, [@col_arr_gmlst]);
+
+  # Pushing columns from gps results table
+  my $schema_ganti = $c->model('gps::GpsResultsAntibiotic');
+  my @col_arr_ganti = $schema_ganti->result_source->columns;
+  splice (@col_arr_ganti,0,1);
+  push(@col_arr, @col_arr_ganti);
+  push(@{$col}, [@col_arr_ganti]);
+
   # Pushing columns from sequence data table
   my $schema_gsd = $c->model('gps::GpsSequenceData');
   my @col_arr_gsd = $schema_gsd->result_source->columns;
