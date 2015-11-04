@@ -4,6 +4,7 @@ use namespace::autoclean;
 use JSON;
 use DBConnect::Controller::JsonUtilityServices;
 use Try::Tiny;
+use Data::Dumper;
 
 BEGIN { extends 'Catalyst::Controller'; }
 
@@ -30,12 +31,12 @@ sub bulkUpload :Path('/bulk_upload/') {
   # Get post data
   my $postData = $c->request->parameters;
   # Logging
-  my $log_str = '';
-  $log_str .= (defined $c->user->gpu_institution)?$c->user->get('gpu_name'):"GUEST-$c->request->address";
-  $log_str .= "-BulkUpload-ST-".to_json($postData) if(scalar keys %{$postData} > 0);
-  $c->log->warn($log_str);
   my $upfile = $c->request->upload('st_update_file');
   my $column = $c->request->param('st_update_type');
+  my $log_str = '';
+  $log_str .= (defined $c->user->gpu_institution)?$c->user->get('gpu_name'):"GUEST-$c->request->address";
+  $log_str .= "-BulkUpload-$column-".to_json($postData) if(scalar keys %{$postData} > 0);
+  $c->log->warn($log_str);
   my $res = {};
   $res->{rows_updated} = 0;
 
@@ -68,12 +69,12 @@ sub bulkUpload :Path('/bulk_upload/') {
     my $q;
     eval {
       foreach my $lane (keys %$parsedData) {
-
         my $rows_affected;
         try {
           $q = qq {
-            UPDATE gps_results SET $column = '$parsedData->{$lane}', grs_updated_on = now() WHERE grs_lane_id = '$lane'
+            UPDATE gps_results SET $column = '$parsedData->{$lane}->[0]', grs_updated_on = now() WHERE grs_lane_id = '$lane'
           };
+
           $rows_affected = $c->config->{gps_dbh}->do($q) or die $!;
           if($rows_affected == 0  or $rows_affected eq '0E0') {
             push @{$res->{rows_not_updated}}, $lane;
