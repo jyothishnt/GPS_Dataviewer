@@ -243,7 +243,9 @@ sub createQuery {
                           LEFT JOIN gps_results_antibiotic as A
                               ON SC.gss_lane_id = A.gra_lane_id
                           LEFT JOIN gps_metadata as M
-                              ON (SC.gss_public_name = M.gmd_public_name)
+                              ON SC.gss_public_name = M.gmd_public_name
+                          LEFT JOIN gps_coordinates as C
+                              ON M.gmd_country = C.gco_location
                             };
 
   my $search_condition = '';
@@ -461,6 +463,7 @@ sub checkDBConnectionAndExecute() {
   return $sth;
 }
 
+# Creating NAME_R1 => NAME map
 sub getSScapeMapForRepeats {
   my $c = shift;
   my $map = {};
@@ -482,6 +485,11 @@ sub getSScapeMapForRepeats {
     }
   }
   return $map;
+}
+
+sub getMetadataSearchFields {
+  my $search_data = shift;
+  print Dumper $search_data;
 }
 
 sub getMetadataMapForRepeats {

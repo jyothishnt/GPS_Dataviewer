@@ -3,20 +3,20 @@
         margin:0px;
         padding:0px;
       }
-        
+
       html, body{
         background:#333;
         font-family:verdana;
-      } 
+      }
 
       footer {
-        bottom: 0px; 
+        bottom: 0px;
         position: absolute;
         text-align: center;
         width: 100%;
         font-size: 12px;
         color: #88887a;
-      }                                      
+      }
 
       #loginform
       {
@@ -74,14 +74,9 @@
           width:85%;
           padding:12px 20px 12px 10px;
           border:none;
-          color:#fff;                       
+          color:#fff;
           box-shadow:inset 0px 1px 5px #272727;
           font-size:0.8em;
-          -webkit-transition:0.5s ease;
-          -moz-transition:0.5s ease;
-          -o-transition:0.5s ease;
-          -ms-transition:0.5s ease;
-          transition:0.5s ease; 
       }
 
       input:focus
@@ -90,7 +85,7 @@
         -moz-transition:0.5s ease;
         -o-transition:0.5s ease;
         -ms-transition:0.5s ease;
-        transition:0.5s ease;  
+        transition:0.5s ease;
         box-shadow: 0px 0px 1px 2px #45bcff;
       }
 
@@ -122,22 +117,22 @@
         -ms-transition:0.5s ease;
         transition:0.5s ease;
       }
-       
+
       *:focus{outline:none;}
       ::-webkit-input-placeholder {
         color:#929999;
       }
 
       :-moz-placeholder { /* Firefox 18- */
-        color:#929999; 
+        color:#929999;
       }
 
       ::-moz-placeholder {  /* Firefox 19+ */
-        color:#929999;  
+        color:#929999;
       }
 
-      :-ms-input-placeholder {  
-        color:#929999; 
+      :-ms-input-placeholder {
+        color:#929999;
       }
 
       h1
@@ -164,15 +159,10 @@
         background-size: 100%;
         padding:0px 10px 10px 0px;
         width:170px;
-        height:135px; 
+        height:135px;
         border-radius:3px;
         cursor:pointer;
         margin-right:20px;
-        -webkit-transition:0.5s ease;
-        -moz-transition:0.5s ease;
-        -o-transition:0.5s ease;
-        -ms-transition:0.5s ease;
-        transition:0.5s ease;
       }
       .passwd {
         line-height: 300px;
@@ -180,16 +170,16 @@
       #logo img {
         width: 110%;
         vertical-align: middle;
-      }
-      a
-      {
-        color:#88887a;
-        text-decoration:none;
         -webkit-transition:0.5s ease;
         -moz-transition:0.5s ease;
         -o-transition:0.5s ease;
         -ms-transition:0.5s ease;
         transition:0.5s ease;
+      }
+      a
+      {
+        color:#88887a;
+        text-decoration:none;
       }
 
       a:hover
@@ -210,4 +200,12 @@
         position:relative;
         background:#555555;
         border-radius:3px;
+      }
+      input:-webkit-autofill {
+          -webkit-box-shadow:0 0 0 50px #333 inset;
+          -webkit-text-fill-color: #fff;
+      }
+      input:-webkit-autofill:focus {
+          -webkit-box-shadow:0 0 0 50px #333 inset;
+          -webkit-text-fill-color: #fff;
       }

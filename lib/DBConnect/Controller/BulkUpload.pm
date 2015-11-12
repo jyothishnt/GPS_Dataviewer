@@ -4,7 +4,6 @@ use namespace::autoclean;
 use JSON;
 use DBConnect::Controller::JsonUtilityServices;
 use Try::Tiny;
-use Data::Dumper;
 
 BEGIN { extends 'Catalyst::Controller'; }
 

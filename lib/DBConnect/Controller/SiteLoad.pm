@@ -74,6 +74,14 @@ sub gpsDataDisplayMain :Path('/gps/data/') :Args(0) {
   splice (@col_arr_gmd,1,1);
   push(@{$col}, [@col_arr_gmd]);
 
+  # Pushing columns from metadata table
+  my $schema_coord = $c->model('gps::GpsCoordinates');
+  my @col_arr_coord = $schema_coord->result_source->columns;
+  push(@col_arr, @col_arr_coord);
+  splice (@col_arr_coord,0,1);
+  push(@{$col}, [@col_arr_coord]);
+
+
   #$c->stash->{search_columns} = to_json(\@col_arr);
   $c->stash->{gpsdb_column_2d_array} = to_json($col);
   $c->stash->{username} = 'GPS Search';
