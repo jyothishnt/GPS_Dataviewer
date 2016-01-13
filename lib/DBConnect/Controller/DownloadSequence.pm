@@ -72,13 +72,14 @@ sub downloadSequenceFiles :Path('/download') {
       $found = 1;
     }
   }
+
+  my $outfilename = "$args[0]_".$c->user->get('gpu_name')."_".time.".zip";
   my $outfile = File::Spec->catfile($c->config->{dataviewer_tmp}, $outfilename);
 
   if($found == 0) {
     $c->res->body({err=>'Files not available for download!'});
   }
   else {
-    my $outfilename = "$args[0]_".$c->user->get('gpu_name')."_".time.".zip";
     # Save the Zip file
     unless ( $zip->writeToFileNamed($outfile) == AZ_OK ) {
       $c->res->body({err=>'Error creating zip file... Please try again!'});
