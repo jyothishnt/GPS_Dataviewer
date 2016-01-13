@@ -48,7 +48,7 @@ sub downloadSequenceFiles :Path('/download') {
   else {
     $c->res->body({err=>'Bad url!'});
   }
-  
+
   $c->log->warn($log_str);
   # Get type of url to retrieve - submitted_ftp or fastq_ftp
 
@@ -56,27 +56,34 @@ sub downloadSequenceFiles :Path('/download') {
   # For each err id, get the ftp url and store in a hash of arrays
   foreach my $lane (@{$postData->{lane_ids}}) {
     if($args[0]=~/assemblies/) {
-      push @$file_arr, File::Spec->catfile($c->config->{download_path}, '2245_assemblies', $lane.'.contigs_velvet.fa');
+      push @$file_arr, File::Spec->catfile($c->config->{download_path}, '2245_assemblies', $lane.'.contigs_velvet.fa.gz');
     }
     elsif($args[0]=~/annotations/) {
-      push @$file_arr, File::Spec->catfile($c->config->{download_path}, '2245_annotations', $lane.'.gff');
+      push @$file_arr, File::Spec->catfile($c->config->{download_path}, '2245_annotations', $lane.'.gff.gz');
     }
   }
   # Creating a zip file
   my $zip = Archive::Zip->new();
+  my $found = 0;
   foreach my $file (@$file_arr) {
     my $file_name = basename $file;
     if(-s "$file") {
       $zip->addFile($file, $file_name, 1);
+      $found = 1;
     }
   }
-  my $outfilename = "$args[0]_".$c->user->get('gpu_name')."_".time.".zip";
-  # Save the Zip file
-  my $outfile = File::Spec->catfile($c->config->{dataviewer_tmp}, $outfilename);
-  unless ( $zip->writeToFileNamed($outfile) == AZ_OK ) {
-    $c->res->body({err=>'Error creating zip file... Please try again!'});
-  }
 
+  if($found == 0) {
+    $c->res->body({err=>'Files not available for download!'});
+  }
+  else {
+    my $outfilename = "$args[0]_".$c->user->get('gpu_name')."_".time.".zip";
+    # Save the Zip file
+    my $outfile = File::Spec->catfile($c->config->{dataviewer_tmp}, $outfilename);
+    unless ( $zip->writeToFileNamed($outfile) == AZ_OK ) {
+      $c->res->body({err=>'Error creating zip file... Please try again!'});
+    }
+  }
 # my $fh = IO::File->new( $outfile, 'r' );
 
 # binmode $fh;
