@@ -131,22 +131,24 @@ sub getSearchResults() {
   my $t_arr = ();
   $resultSet->{rows} = [];
 
+##### Currently below lines are commented as we resolved the _R1 issue mannually by adding rows in the metadata.
   # Get repeat map
-  my $sscapeRepeatMap = getSScapeMapForRepeats($c);
-  my $metadataRepeatMap = getMetadataMapForRepeats($sscapeRepeatMap->{public_name_orig_arr}, $c);
-  my $publicNameRepeat_metadataMap = createPublicNameRepeatMetadataMap($sscapeRepeatMap, $metadataRepeatMap);
+  # my $sscapeRepeatMap = getSScapeMapForRepeats($c);
+  # my $metadataRepeatMap = getMetadataMapForRepeats($sscapeRepeatMap->{public_name_orig_arr}, $c);
+  # my $publicNameRepeat_metadataMap = createPublicNameRepeatMetadataMap($sscapeRepeatMap, $metadataRepeatMap);
 
   my $sth = checkDBConnectionAndExecute($qString, $c);
 
   # Push metadata to the final map
   while(my $row = $sth->fetchrow_hashref) {
-    if($row->{gss_public_name} && $publicNameRepeat_metadataMap && $publicNameRepeat_metadataMap->{$row->{gss_public_name}}) {
-      # Merge the metadata into each row if metedata is defined.
-      # This is done by converting them into a list context and then assigning it to a hash
-      # which will convert back to a hash. The first hash values will be overwritten by the second hash values.
-      my %mergeMap = (%$row, %{$publicNameRepeat_metadataMap->{$row->{gss_public_name}}});
-      $row = \%mergeMap;
-    }
+##### Currently below lines are commented as we resolved the _R1 issue mannually by adding rows in the metadata.
+    # if($row->{gss_public_name} && $publicNameRepeat_metadataMap && $publicNameRepeat_metadataMap->{$row->{gss_public_name}}) {
+    #   # Merge the metadata into each row if metedata is defined.
+    #   # This is done by converting them into a list context and then assigning it to a hash
+    #   # which will convert back to a hash. The first hash values will be overwritten by the second hash values.
+    #   my %mergeMap = (%$row, %{$publicNameRepeat_metadataMap->{$row->{gss_public_name}}});
+    #   $row = \%mergeMap;
+    # }
     push(@{$resultSet->{rows}}, $row);
   }
 
@@ -170,10 +172,11 @@ sub getDownloadResults {
   my $resultSet = {};
   my $t_arr = ();
 
+##### Currently below lines are commented as we resolved the _R1 issue mannually by adding rows in the metadata.
   # Get repeat map
-  my $sscapeRepeatMap = getSScapeMapForRepeats($c);
-  my $metadataRepeatMap = getMetadataMapForRepeats($sscapeRepeatMap->{public_name_orig_arr}, $c);
-  my $publicNameRepeat_metadataMap = createPublicNameRepeatMetadataMap($sscapeRepeatMap, $metadataRepeatMap);
+  # my $sscapeRepeatMap = getSScapeMapForRepeats($c);
+  # my $metadataRepeatMap = getMetadataMapForRepeats($sscapeRepeatMap->{public_name_orig_arr}, $c);
+  # my $publicNameRepeat_metadataMap = createPublicNameRepeatMetadataMap($sscapeRepeatMap, $metadataRepeatMap);
 
   my $sth = checkDBConnectionAndExecute($qString, $c);
 
@@ -191,13 +194,14 @@ sub getDownloadResults {
     if($sth->rows > 0) {
       while(my $row = $sth->fetchrow_hashref) {
 
-        if($row->{gss_public_name} && $publicNameRepeat_metadataMap && $publicNameRepeat_metadataMap->{$row->{gss_public_name}}) {
-          # Merge the metadata into each row if metedata is defined.
-          # This is done by converting them into a list context and then assigning it to a hash
-          # which will convert back to a hash. The first hash values will be overwritten by the second hash values.
-          my %mergeMap = (%$row, %{$publicNameRepeat_metadataMap->{$row->{gss_public_name}}});
-          $row = \%mergeMap;
-        }
+##### Currently below lines are commented as we resolved the _R1 issue mannually by adding rows in the metadata.
+        # if($row->{gss_public_name} && $publicNameRepeat_metadataMap && $publicNameRepeat_metadataMap->{$row->{gss_public_name}}) {
+        #   # Merge the metadata into each row if metedata is defined.
+        #   # This is done by converting them into a list context and then assigning it to a hash
+        #   # which will convert back to a hash. The first hash values will be overwritten by the second hash values.
+        #   my %mergeMap = (%$row, %{$publicNameRepeat_metadataMap->{$row->{gss_public_name}}});
+        #   $row = \%mergeMap;
+        # }
 
         $t_arr = ();
         foreach my $colname (@$selected_columns_arr) {
