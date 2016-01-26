@@ -30,6 +30,7 @@ sub downloadSequenceFiles :Path('/download') {
   my ( $self, $c, @args ) = @_;
   # Get post data
   my $postData = $c->request->body_data;
+
   # Logging
   my $log_str = '';
   $log_str .= (defined $c->user->gpu_institution)?$c->user->get('gpu_name'):"GUEST-$c->request->address";
@@ -51,22 +52,13 @@ sub downloadSequenceFiles :Path('/download') {
 
   $c->log->warn($log_str);
 
-  my $file_arr = ();
-  foreach my $lane (@{$postData->{lane_ids}}) {
-    if($args[0]=~/assemblies/) {
-      push @$file_arr, File::Spec->catfile($c->config->{download_path}, '2245_assemblies', $lane.'.contigs_velvet.fa.gz');
-    }
-    elsif($args[0]=~/annotations/) {
-      push @$file_arr, File::Spec->catfile($c->config->{download_path}, '2245_annotations', $lane.'.gff.gz');
-    }
-  }
   # Creating a zip file
   my $zip = Archive::Zip->new();
   my $found = 0;
   my $file = '';
   my $file_name;
 
-  foreach my $row (@{$postData}) {
+  foreach my $lane (@{$postData->{lane_ids}}) {
     if($args[0]=~/assemblies/) {
       $file = File::Spec->catfile($c->config->{download_path}, '2245_assemblies', $lane.'.contigs_velvet.fa.gz');
       # If zipped not found, check if there is an unzipped one
@@ -89,32 +81,22 @@ sub downloadSequenceFiles :Path('/download') {
     }
   }
 
-  my $outfilename = "$args[0]_".$c->user->get('gpu_username')."_".time.".zip";
-  my $outfile = File::Spec->catfile($c->config->{dataviewer_tmp}, $outfilename);
-
   if($found == 0) {
-    $c->res->body({err=>'Files not available for download!'});
+    $c->res->body(to_json({err=>'Files not available for download!'}));
   }
   else {
     # Save the Zip file
+    my $outfilename = "$args[0]_".$c->user->get('gpu_username')."_".time.".zip";
+    my $outfile = File::Spec->catfile($c->config->{dataviewer_tmp}, $outfilename);
+
     unless ( $zip->writeToFileNamed($outfile) == AZ_OK ) {
       $c->res->body({err=>'Error creating zip file... Please try again!'});
     }
+
+    # return json data back to server
+    $c->res->header('Content-Type' => "text/json");
+    $c->res->body(to_json({'file'=>$outfile}));
   }
-# my $fh = IO::File->new( $outfile, 'r' );
-
-# binmode $fh;
-
-#  use File::stat;
-#  my $statObj = stat($outfile);
-   $c->res->header('Content-Type' => "text/json");
-#   # $c->res->header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
-#   $c->res->header('Content-Length' => $statObj->size);
-#   $c->res->header('Content-Disposition' => "attachment;filename=$outfilename\n\n");
-#   # $c->finalize_headers();
-#   $c->res->body( $fh );
-  # return json data back to server
-  $c->res->body(to_json({'file'=>$outfile}));
 }
 
 
