@@ -15,8 +15,8 @@
                 text-shadow: none;
             }
 
-            html { 
-                background: url("[% c.request.base %]/static/images/sad_dog.png") no-repeat center center fixed; 
+            html {
+                background: url("[% c.request.base %]/static/images/sad_dog.png") no-repeat center center fixed;
                 -webkit-background-size: cover;
                 -moz-background-size: cover;
                 -o-background-size: cover;

@@ -18,7 +18,7 @@ Catalyst Controller.
 
 
 =head2 index
-    
+
 Login logic
 
 =cut
@@ -41,7 +41,7 @@ sub index : Path('/login') {
     my $rs = $c->find_user({
               gpu_username => $username,
             });
-    
+
     # If the username and password values were found in form
     if ($username && $password) {
         # Attempt to log the user in
@@ -59,7 +59,7 @@ sub index : Path('/login') {
         }
         else {
           $c->stash->{error_msg} = "Incorrect username or password!";
-        }      
+        }
     }
     else {
       # Do nothing here

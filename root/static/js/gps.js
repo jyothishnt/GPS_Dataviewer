@@ -1231,7 +1231,7 @@ function st_update_validator() {
   }
   var reg = /\.xlsx$|\.xls$|\.csv$/;
   if(!reg.test($('#st_update_file').val())) {
-    showMsg('Invalid file. Only .xlsx files are valid!');
+    showMsg('Invalid file. Only .xls, .xlsx and .csv files are valid!');
     return false;
   }
 

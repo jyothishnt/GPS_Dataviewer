@@ -50,10 +50,8 @@ sub downloadSequenceFiles :Path('/download') {
   }
 
   $c->log->warn($log_str);
-  # Get type of url to retrieve - submitted_ftp or fastq_ftp
 
   my $file_arr = ();
-  # For each err id, get the ftp url and store in a hash of arrays
   foreach my $lane (@{$postData->{lane_ids}}) {
     if($args[0]=~/assemblies/) {
       push @$file_arr, File::Spec->catfile($c->config->{download_path}, '2245_assemblies', $lane.'.contigs_velvet.fa.gz');
@@ -65,15 +63,33 @@ sub downloadSequenceFiles :Path('/download') {
   # Creating a zip file
   my $zip = Archive::Zip->new();
   my $found = 0;
-  foreach my $file (@$file_arr) {
-    my $file_name = basename $file;
+  my $file = '';
+  my $file_name;
+
+  foreach my $row (@{$postData}) {
+    if($args[0]=~/assemblies/) {
+      $file = File::Spec->catfile($c->config->{download_path}, '2245_assemblies', $lane.'.contigs_velvet.fa.gz');
+      # If zipped not found, check if there is an unzipped one
+      if(! -s "$file") {
+        $file = File::Spec->catfile($c->config->{download_path}, '2245_assemblies', $lane.'.contigs_velvet.fa');
+      }
+    }
+    elsif($args[0]=~/annotations/) {
+      $file = File::Spec->catfile($c->config->{download_path}, '2245_annotations', $lane.'.gff.gz');
+      # If zipped not found, check if there is an unzipped one
+      if(! -s "$file") {
+        $file = File::Spec->catfile($c->config->{download_path}, '2245_annotations', $lane.'.gff');
+      }
+    }
+
+    $file_name = basename $file;
     if(-s "$file") {
       $zip->addFile($file, $file_name, 1);
       $found = 1;
     }
   }
 
-  my $outfilename = "$args[0]_".$c->user->get('gpu_name')."_".time.".zip";
+  my $outfilename = "$args[0]_".$c->user->get('gpu_username')."_".time.".zip";
   my $outfile = File::Spec->catfile($c->config->{dataviewer_tmp}, $outfilename);
 
   if($found == 0) {
