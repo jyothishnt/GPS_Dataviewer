@@ -29,9 +29,9 @@ Catalyst Controller.
 sub searchGPSData :Path('/gps/json/') {
   my ( $self, $c, @args ) = @_;
   # Logging
-  my $log_str = '';
-  $log_str .= (defined $c->user->gpu_institution)?$c->user->get('gpu_name'):"GUEST-".$c->request->address;
-
+  my $log_str = '***';
+  $log_str .= (defined $c->user->gpu_institution) ? $c->user->get('gpu_name'). ",".$c->request->address : "GUEST,".$c->request->address;
+  $log_str .= "***";
   my $search_data;
   if($c->request->body_data) {
     $search_data = $c->request->body_data;

@@ -354,7 +354,7 @@ use File::ReadBackwards;
 sub getLiveUsageData :Path('/json/get_live_data/') {
   my ( $self, $c, @args ) = @_;
   my $map = [];
-  use Data::Dumper;
+
   # Read access log
   if (-s $c->config->{logFile}) {
     my $bw = File::ReadBackwards->new( $c->config->{logFile} ) or
@@ -363,31 +363,49 @@ sub getLiveUsageData :Path('/json/get_live_data/') {
     my $log_line;
     my $userLimit = $args[0] || 2;
     my @userArr = ();
+    my @lineArr = ();
     my @timeArr = ();
     my $user = '';
     my $liveData = {};
     my $i=0;
     my $t = {};
     my $userFoundMap = {};
+    my $ip;
+    my $loc;
+    my $url = "";
+    my $m;
 
     while( defined( $log_line = $bw->readline ) ) {
-      @userArr = split(/-/, $log_line);
-      next unless (defined $userArr[1]);
-      chomp $userArr[1];
-      $user = $userArr[1];
-      $user =~s/^\s//;
+      @lineArr = split(/\*\*\*/, $log_line);
+      next unless (defined $lineArr[1]);
+      chomp $lineArr[1];
+      @userArr = split(',', $lineArr[1]);
+      $user = $userArr[0] || '';
+      $ip = $userArr[1] || '';
 
-      if ($user ne '' and $user =~m/Jyo|Becca|Ste/) {
-        @timeArr = split(/\]\s/, $userArr[0]);
+      if ($user ne '') {
+        @timeArr = split(/\]\s/, $lineArr[0]);
         $timeArr[0] =~s/^\[//;
 
         if(! $userFoundMap->{$user}) {
           $t = {};
           $userFoundMap->{$user}++;
-          $t->{user} = $user;
-          $t->{time} = $timeArr[0];
-          $t->{longitude} = -64.404945 + ($i+=10);
-          $t->{latitude} = -32.202924;
+          $t->{user} = $user || '';
+          $t->{ip} = $ip || '';
+          $t->{time} = $timeArr[0] || '';
+
+          # Get lat lng from IP
+          if ($ip ne '') {
+            $m = WWW::Mechanize->new();
+            $url = "http://ipinfo.io/$ip/loc";
+            $m->get($url);
+            $loc = $m->content;
+            chomp $loc;
+            if ($loc ne "undefined") {
+              ($t->{longitude}, $t->{latitude}) = split(',', $loc);
+            }
+          }
+
           if(defined $userArr[2]) {
             chomp $userArr[2];
             $t->{type} = $userArr[2];
@@ -400,50 +418,13 @@ sub getLiveUsageData :Path('/json/get_live_data/') {
         }
       }
     }
-    # $c->res->body(to_json({'err', 'Something went wrong. Please try again'}));
+    if (scalar @{$liveData->{data}} > 0) {
+      $c->res->body(to_json($liveData));
+    }
+    else {
+      $c->res->body(to_json({'err', 'No data found or something went wrong. Please try again'}));
+    }
   }
-  # #my $log = $;
-  # # Reconnect to db if connection available
-  # if(!$c->config->{gps_dbh}->ping) {
-  #   my $attr = {
-  #       mysql_auto_reconnect => $c->config->{mysql_auto_reconnect},
-  #       AutoCommit => $c->config->{AutoCommit}
-  #   };
-  #   $c->log->warn("Re-connected @ getSampleCount_Country() ".$c->config->{dsn});
-  #   my $dbh = DBI->connect($c->config->{dsn},$c->config->{user},$c->config->{password}, $attr);
-  #   $c->config->{gps_dbh} = $dbh;
-  # }
-
-  # my $q = qq {
-  #   SELECT
-  #     pco_location,
-  #     pco_latitude,
-  #     pco_longitude
-  #   FROM
-  #     pneumodb_coordinates
-  #   WHERE
-  #     pco_location = ?
-  # };
-
-  # my $sth = $c->config->{gps_dbh}->prepare($q);
-  # $sth->execute($location);
-  # # Create a resultset with a groupby clause
-  # if($sth->rows > 0) {
-  #   my $t_map = {};
-  #   while(my $row = $sth->fetchrow_hashref) {
-  #     # Creating a hash of column value and count
-  #     $t_map = {};
-  #     $t_map->{$row->{'pco_location'}}->{lat} = $row->{pco_latitude};
-  #     $t_map->{$row->{'pco_location'}}->{lng} = $row->{pco_longitude};
-  #     push @{$map}, $t_map;
-  #   }
-  #   # Send back json
-  #   $c->res->body(to_json($map));
-  # }
-  # else {
-  #   # If no column found then show the 404 template
-  #   $c->res->body('Country not found');
-  # }
 }
 
 

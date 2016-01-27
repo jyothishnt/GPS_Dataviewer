@@ -31,8 +31,9 @@ sub getFastq :Path('/fastq/url/') {
   my $postData = $c->request->body_data;
   $ENV{'HTTP_PROXY'} = $c->config->{http_proxy};
   # Logging
-  my $log_str = '';
-  $log_str .= (defined $c->user->gpu_institution)?$c->user->get('gpu_name'):"GUEST-$c->request->address";
+  my $log_str = '***';
+  $log_str .= (defined $c->user->gpu_institution) ? $c->user->get('gpu_name'). ",".$c->request->address : "GUEST,".$c->request->address;
+  $log_str .= "***";
   $log_str .= "-FastqUrl-".to_json($postData) if(scalar @{$postData->{accession}} > 0);
   $c->log->warn($log_str);
   # Get type of url to retrieve - submitted_ftp or fastq_ftp

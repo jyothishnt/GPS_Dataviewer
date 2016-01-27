@@ -62,8 +62,9 @@ sub updateMlst : Path('/gps/update/mlst') {
   my $txn;
   my $res = {};
   # Logging
-  my $log_str = '';
-  $log_str .= (defined $c->user->gpu_institution)?$c->user->get('gpu_name'):"GUEST-$c->request->address";
+  my $log_str = '***';
+  $log_str .= (defined $c->user->gpu_institution) ? $c->user->get('gpu_name'). ",".$c->request->address : "GUEST,".$c->request->address;
+  $log_str .= "***";
   $log_str .= '-UpdateMlst-'.to_json($postData) if(scalar @$postData > 0);
   $c->log->warn($log_str);
   my $q;

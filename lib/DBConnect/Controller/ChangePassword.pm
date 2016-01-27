@@ -33,8 +33,8 @@ sub change_password : Path('/changepassword/update') {
   my $rs;
   my $res = {};
   # Logging
-  my $log_str = '';
-  $log_str .= $c->request->params->{username};
+  my $log_str = '***';
+  $log_str .= "***" . $c->request->params->{username} . "," . $c->request->address . "***";
   $log_str .= "-ChangePassword";
   $c->log->warn($log_str);
   my $q;
@@ -95,7 +95,7 @@ sub change_password : Path('/changepassword/update') {
         }
         else {
           $c->stash->{error_msg} = "User not found! Please check the username or password";
-        }      
+        }
     }
     else {
       $c->stash->{error_msg} = "Missing input!";
