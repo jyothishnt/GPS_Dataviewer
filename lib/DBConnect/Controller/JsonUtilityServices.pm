@@ -348,8 +348,6 @@ sub parseCSV {
   return $parsedData;
 }
 
-use File::ReadBackwards;
-
 # Fetch live usage data
 sub getLiveUsageData :Path('/json/get_live_data/') {
   my ( $self, $c, @args ) = @_;
