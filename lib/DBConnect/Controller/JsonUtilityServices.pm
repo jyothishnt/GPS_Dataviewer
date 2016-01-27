@@ -8,6 +8,7 @@ use Spreadsheet::ParseExcel;
 use Text::CSV;
 use DBConnect::Controller::SearchGpsDB;
 use Try::Tiny;
+use File::ReadBackwards;
 
 BEGIN { extends 'Catalyst::Controller'; }
 
@@ -346,6 +347,105 @@ sub parseCSV {
 
   return $parsedData;
 }
+
+use File::ReadBackwards;
+
+# Fetch live usage data
+sub getLiveUsageData :Path('/json/get_live_data/') {
+  my ( $self, $c, @args ) = @_;
+  my $map = [];
+  use Data::Dumper;
+  # Read access log
+  if (-s $c->config->{logFile}) {
+    my $bw = File::ReadBackwards->new( $c->config->{logFile} ) or
+                        $c->res->body("Can't read log file $c->config->{logFile} $!");
+
+    my $log_line;
+    my $userLimit = $args[0] || 2;
+    my @userArr = ();
+    my @timeArr = ();
+    my $user = '';
+    my $liveData = {};
+    my $i=0;
+    my $t = {};
+    my $userFoundMap = {};
+
+    while( defined( $log_line = $bw->readline ) ) {
+      @userArr = split(/-/, $log_line);
+      next unless (defined $userArr[1]);
+      chomp $userArr[1];
+      $user = $userArr[1];
+      $user =~s/^\s//;
+
+      if ($user ne '' and $user =~m/Jyo|Becca|Ste/) {
+        @timeArr = split(/\]\s/, $userArr[0]);
+        $timeArr[0] =~s/^\[//;
+
+        if(! $userFoundMap->{$user}) {
+          $t = {};
+          $userFoundMap->{$user}++;
+          $t->{user} = $user;
+          $t->{time} = $timeArr[0];
+          $t->{longitude} = -64.404945 + ($i+=10);
+          $t->{latitude} = -32.202924;
+          if(defined $userArr[2]) {
+            chomp $userArr[2];
+            $t->{type} = $userArr[2];
+          }
+          push @{$liveData->{data}}, $t;
+        }
+
+        if (scalar @{$liveData->{data}} >= $userLimit) {
+          $c->res->body(to_json($liveData));
+        }
+      }
+    }
+    # $c->res->body(to_json({'err', 'Something went wrong. Please try again'}));
+  }
+  # #my $log = $;
+  # # Reconnect to db if connection available
+  # if(!$c->config->{gps_dbh}->ping) {
+  #   my $attr = {
+  #       mysql_auto_reconnect => $c->config->{mysql_auto_reconnect},
+  #       AutoCommit => $c->config->{AutoCommit}
+  #   };
+  #   $c->log->warn("Re-connected @ getSampleCount_Country() ".$c->config->{dsn});
+  #   my $dbh = DBI->connect($c->config->{dsn},$c->config->{user},$c->config->{password}, $attr);
+  #   $c->config->{gps_dbh} = $dbh;
+  # }
+
+  # my $q = qq {
+  #   SELECT
+  #     pco_location,
+  #     pco_latitude,
+  #     pco_longitude
+  #   FROM
+  #     pneumodb_coordinates
+  #   WHERE
+  #     pco_location = ?
+  # };
+
+  # my $sth = $c->config->{gps_dbh}->prepare($q);
+  # $sth->execute($location);
+  # # Create a resultset with a groupby clause
+  # if($sth->rows > 0) {
+  #   my $t_map = {};
+  #   while(my $row = $sth->fetchrow_hashref) {
+  #     # Creating a hash of column value and count
+  #     $t_map = {};
+  #     $t_map->{$row->{'pco_location'}}->{lat} = $row->{pco_latitude};
+  #     $t_map->{$row->{'pco_location'}}->{lng} = $row->{pco_longitude};
+  #     push @{$map}, $t_map;
+  #   }
+  #   # Send back json
+  #   $c->res->body(to_json($map));
+  # }
+  # else {
+  #   # If no column found then show the 404 template
+  #   $c->res->body('Country not found');
+  # }
+}
+
 
 =encoding utf8
 
