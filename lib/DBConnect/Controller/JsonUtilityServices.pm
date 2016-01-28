@@ -417,6 +417,7 @@ sub getLiveUsageData :Path('/json/get_live_data/') {
       }
     }
     if ($liveData->{data} && scalar @{$liveData->{data}} > 0) {
+      $c->response->headers->header( 'Access-Control-Allow-Origin' => '*' );
       $c->res->body(to_json($liveData));
     }
     else {
