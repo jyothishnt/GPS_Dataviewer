@@ -67,7 +67,7 @@ sub updateComments : Path('/gps/update/comments') {
   my $res = {};
   # Logging
   my $log_str = '***';
-  $log_str .= (defined $c->user->gpu_institution) ? $c->user->get('gpu_name'). ",".$c->request->address : "GUEST,".$c->request->address;
+  $log_str .= (defined $c->user->gpu_institution) ? $c->user->get('gpu_name'). ",".$c->request->headers->header('x-cluster-client-ip') : "GUEST,".$c->request->headers->header('x-cluster-client-ip');
   $log_str .= "***";
   $log_str .= '-UpdateComments-'.to_json($postData) if(scalar @$postData > 0);
   $c->log->warn($log_str);

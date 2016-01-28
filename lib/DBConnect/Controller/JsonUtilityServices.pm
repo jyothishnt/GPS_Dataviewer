@@ -391,10 +391,10 @@ sub getLiveUsageData :Path('/json/get_live_data/') {
         if(1 || ! $userFoundMap->{$user}) {
           $t = {};
           $userFoundMap->{$user}++;
-          $t->{user} = $user || '';
-          $t->{ip} = $ip || '';
-          $timeArr[0]=~s/\//-/g;
-          $t->{time} = $timeArr[0] || '';
+          # $t->{user} = $user || '';
+          # $t->{ip} = $ip || '';
+          # $timeArr[0]=~s/\//-/g;
+          # $t->{time} = $timeArr[0] || '';
 
           my $timeObj = Time::Piece->new;
           my $ts_log = $timeObj->strptime($t->{time}, '%Y-%m-%d %H:%M:%S');
@@ -413,10 +413,10 @@ sub getLiveUsageData :Path('/json/get_live_data/') {
               }
             }
 
-            if(defined $userArr[2]) {
-              chomp $userArr[2];
-              $t->{type} = $userArr[2];
-            }
+            # if(defined $userArr[2]) {
+            #   chomp $userArr[2];
+            #   $t->{type} = $userArr[2];
+            # }
             push @{$liveData->{data}}, $t;
           }
           else {

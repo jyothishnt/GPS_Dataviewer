@@ -34,7 +34,7 @@ sub change_password : Path('/changepassword/update') {
   my $res = {};
   # Logging
   my $log_str = '***';
-  $log_str .= "***" . $c->request->params->{username} . "," . $c->request->address . "***";
+  $log_str .= "***" . $c->request->params->{username} . "," . $c->request->headers->header('x-cluster-client-ip') . "***";
   $log_str .= "-ChangePassword";
   $c->log->warn($log_str);
   my $q;

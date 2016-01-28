@@ -31,7 +31,7 @@ sub getGCimages :Path('/get_gc_images') {
   my $postData = $c->request->body_data;
   # Logging
   my $log_str = '***';
-  $log_str .= (defined $c->user->gpu_institution) ? $c->user->get('gpu_name'). ",".$c->request->address : "GUEST,".$c->request->address;
+  $log_str .= (defined $c->user->gpu_institution) ? $c->user->get('gpu_name'). ",".$c->request->headers->header('x-cluster-client-ip') : "GUEST,".$c->request->headers->header('x-cluster-client-ip');
   $log_str .= "***";
   if(scalar keys %{$postData} <= 0) {
     $c->res->body(to_json({'err'=>'No input found!'}));
