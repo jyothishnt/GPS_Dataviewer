@@ -407,19 +407,22 @@ sub getLiveUsageData :Path('/json/get_live_data/') {
               $url = "http://ipinfo.io/$ip/loc";
               try {
                 $loc = $m->get($url);
-                $loc = $m->content;
-                chomp $loc;
-                # use Data::Dumper;
-                # print Dumper $user, $url, $loc;
-                if ($loc ne "undefined") {
-                  ($t->{latitude}, $t->{longitude}) = split(',', $loc);
-                }
               } catch {
                 next;
               };
+              $loc = $m->content;
+              chomp $loc;
+
+              if ($loc ne "undefined") {
+                ($t->{latitude}, $t->{longitude}) = split(',', $loc);
+              }
             }
 
-            push @{$liveData->{data}}, $t if (scalar keys %$t > 0);
+            # if(defined $userArr[2]) {
+            #   chomp $userArr[2];
+            #   $t->{type} = $userArr[2];
+            # }
+            push @{$liveData->{data}}, $t if (scalar keys %{$t} > 0);
           }
           else {
             last;
