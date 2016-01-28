@@ -394,7 +394,7 @@ sub getLiveUsageData :Path('/json/get_live_data/') {
           # $t->{user} = $user || '';
           # $t->{ip} = $ip || '';
           $timeArr[0]=~s/\//-/g;
-          $t->{time} = $timeArr[0] || '';
+          # $t->{time} = $timeArr[0] || '';
 
           my $timeObj = Time::Piece->new;
           my $ts_log = $timeObj->strptime($timeArr[0], '%Y-%m-%d %H:%M:%S');
@@ -422,7 +422,7 @@ sub getLiveUsageData :Path('/json/get_live_data/') {
             #   chomp $userArr[2];
             #   $t->{type} = $userArr[2];
             # }
-            push @{$liveData->{data}}, $t;
+            push @{$liveData->{data}}, $t if (scalar keys %$t > 0);
           }
           else {
             last;
