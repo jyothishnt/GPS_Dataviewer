@@ -416,7 +416,7 @@ sub getLiveUsageData :Path('/json/get_live_data/') {
         }
       }
     }
-    if (scalar @{$liveData->{data}} > 0) {
+    if ($liveData->{data} && scalar @{$liveData->{data}} > 0) {
       $c->res->body(to_json($liveData));
     }
     else {

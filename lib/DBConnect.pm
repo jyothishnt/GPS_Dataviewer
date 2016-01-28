@@ -66,6 +66,8 @@ __PACKAGE__->log( Log::Log4perl::Catalyst->new(
 		__PACKAGE__->path_to('gps_log.conf')->stringify
 	));
 
+$ENV{'HTTP_PROXY'} = __PACKAGE__->config->{http_proxy};
+
 # Connecting to database and storing dbh in config so that it only connects once to the database.
 my $attr = {
     mysql_auto_reconnect => __PACKAGE__->config->{mysql_auto_reconnect},
