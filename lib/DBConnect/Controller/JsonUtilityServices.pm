@@ -9,6 +9,7 @@ use Text::CSV;
 use DBConnect::Controller::SearchGpsDB;
 use Try::Tiny;
 use File::ReadBackwards;
+use Time::Piece;
 
 BEGIN { extends 'Catalyst::Controller'; }
 
@@ -359,7 +360,8 @@ sub getLiveUsageData :Path('/json/get_live_data/') {
                         $c->res->body("Can't read log file $c->config->{logFile} $!");
 
     my $log_line;
-    my $userLimit = $args[0] || 2;
+    my $userTimeLimit = $args[0] || 1;
+    $userTimeLimit *= 60;
     my @userArr = ();
     my @lineArr = ();
     my @timeArr = ();
@@ -385,37 +387,45 @@ sub getLiveUsageData :Path('/json/get_live_data/') {
         @timeArr = split(/\]\s/, $lineArr[0]);
         $timeArr[0] =~s/^\[//;
 
-        if(! $userFoundMap->{$user}) {
+        # Currently true so to get all hits of a user
+        if(1 || ! $userFoundMap->{$user}) {
           $t = {};
           $userFoundMap->{$user}++;
           $t->{user} = $user || '';
           $t->{ip} = $ip || '';
+          $timeArr[0]=~s/\//-/g;
           $t->{time} = $timeArr[0] || '';
 
-          # Get lat lng from IP
-          if ($ip ne '') {
-            $m = WWW::Mechanize->new();
-            $url = "http://ipinfo.io/$ip/loc";
-            $m->get($url);
-            $loc = $m->content;
-            chomp $loc;
-            if ($loc ne "undefined") {
-              ($t->{latitude}, $t->{longitude}) = split(',', $loc);
+          my $timeObj = Time::Piece->new;
+          my $ts_log = $timeObj->strptime($t->{time}, '%Y-%m-%d %H:%M:%S');
+
+          my $minAgo = $timeObj - $userTimeLimit;
+          if ($ts_log > $minAgo) {
+            # Get lat lng from IP
+            if ($ip ne '') {
+              $m = WWW::Mechanize->new();
+              $url = "http://ipinfo.io/$ip/loc";
+              $m->get($url);
+              $loc = $m->content;
+              chomp $loc;
+              if ($loc ne "undefined") {
+                ($t->{latitude}, $t->{longitude}) = split(',', $loc);
+              }
             }
-          }
 
-          if(defined $userArr[2]) {
-            chomp $userArr[2];
-            $t->{type} = $userArr[2];
+            if(defined $userArr[2]) {
+              chomp $userArr[2];
+              $t->{type} = $userArr[2];
+            }
+            push @{$liveData->{data}}, $t;
           }
-          push @{$liveData->{data}}, $t;
-        }
-
-        if (scalar @{$liveData->{data}} >= $userLimit) {
-          $c->res->body(to_json($liveData));
+          else {
+            last;
+          }
         }
       }
     }
+
     if ($liveData->{data} && scalar @{$liveData->{data}} > 0) {
       $c->response->headers->header( 'Access-Control-Allow-Origin' => '*' );
       $c->res->body(to_json($liveData));
