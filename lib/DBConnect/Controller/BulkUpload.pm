@@ -33,7 +33,7 @@ sub bulkUpload :Path('/bulk_upload/') {
   my $upfile = $c->request->upload('st_update_file');
   my $column = $c->request->param('st_update_type');
   my $log_str = '***';
-  $log_str .= (defined $c->user->gpu_institution) ? $c->user->get('gpu_name'). ",".$c->request->address : "GUEST,".$c->request->address;
+  $log_str .= (defined $c->user->gpu_institution) ? $c->user->get('gpu_name'). ",".$c->request->headers->header('x-cluster-client-ip') : "GUEST,".$c->request->headers->header('x-cluster-client-ip');
   $log_str .= "***";  $log_str .= "-BulkUpload-$column-".to_json($postData) if(scalar keys %{$postData} > 0);
   $c->log->warn($log_str);
   my $res = {};

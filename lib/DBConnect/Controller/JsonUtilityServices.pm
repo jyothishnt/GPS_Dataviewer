@@ -393,21 +393,26 @@ sub getLiveUsageData :Path('/json/get_live_data/') {
           $userFoundMap->{$user}++;
           # $t->{user} = $user || '';
           # $t->{ip} = $ip || '';
-          # $timeArr[0]=~s/\//-/g;
-          # $t->{time} = $timeArr[0] || '';
+          $timeArr[0]=~s/\//-/g;
+          $t->{time} = $timeArr[0] || '';
 
           my $timeObj = Time::Piece->new;
-          my $ts_log = $timeObj->strptime($t->{time}, '%Y-%m-%d %H:%M:%S');
-
+          my $ts_log = $timeObj->strptime($timeArr[0], '%Y-%m-%d %H:%M:%S');
           my $minAgo = $timeObj - $userTimeLimit;
+
           if ($ts_log > $minAgo) {
             # Get lat lng from IP
             if ($ip ne '') {
               $m = WWW::Mechanize->new();
               $url = "http://ipinfo.io/$ip/loc";
-              $m->get($url);
+              try {
+                $loc = $m->get($url);
+              } catch {
+                next;
+              };
               $loc = $m->content;
               chomp $loc;
+
               if ($loc ne "undefined") {
                 ($t->{latitude}, $t->{longitude}) = split(',', $loc);
               }
