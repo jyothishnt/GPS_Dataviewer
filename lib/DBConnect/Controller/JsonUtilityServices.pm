@@ -413,7 +413,7 @@ sub getLiveUsageData :Path('/json/get_live_data/') {
               }};
 
               $mechContent = $m->content;
-              if ($mechContent ne "undefined") {
+              if (defined $mechContent) {
                 $ipResponse = from_json($mechContent);
                 $t->{latitude} = $ipResponse->{latitude};
                 $t->{longitude} = $ipResponse->{longitude};
