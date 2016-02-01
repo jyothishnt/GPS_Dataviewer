@@ -371,8 +371,7 @@ sub getLiveUsageData :Path('/json/get_live_data/') {
     my $t = {};
     my $userFoundMap = {};
     my $ip;
-    my $mechContent;
-    my $ipResponse;
+    my $loc;
     my $url = "";
     my $m;
 
@@ -405,18 +404,17 @@ sub getLiveUsageData :Path('/json/get_live_data/') {
             # Get lat lng from IP
             if ($ip ne '') {
               $m = WWW::Mechanize->new();
-              $url = "http://freegeoip.net/json/$ip";
+              $url = "http://ipinfo.io/$ip/loc";
               try {
-                $mechContent = $m->get($url);
-              } catch {{
+                $loc = $m->get($url);
+              } catch {
                 next;
-              }};
+              };
+              $loc = $m->content;
+              chomp $loc;
 
-              $mechContent = $m->content;
-              if (defined $mechContent) {
-                $ipResponse = from_json($mechContent);
-                $t->{latitude} = $ipResponse->{latitude};
-                $t->{longitude} = $ipResponse->{longitude};
+              if ($loc ne "undefined") {
+                ($t->{latitude}, $t->{longitude}) = split(',', $loc);
               }
             }
 
