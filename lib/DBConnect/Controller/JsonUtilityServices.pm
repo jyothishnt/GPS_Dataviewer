@@ -411,7 +411,7 @@ sub getLiveUsageData :Path('/json/get_live_data/') {
               } catch {{
                 next;
               }};
-              use Data::Dumper;
+
               $mechContent = $m->content;
               if ($mechContent ne "undefined") {
                 $ipResponse = from_json($mechContent);
