@@ -413,7 +413,7 @@ sub getLiveUsageData :Path('/json/get_live_data/') {
               $loc = $m->content;
               chomp $loc;
 
-              if ($loc ne "undefined") {
+              if (defined $loc && $loc ne "undefined") {
                 ($t->{latitude}, $t->{longitude}) = split(',', $loc);
               }
             }
