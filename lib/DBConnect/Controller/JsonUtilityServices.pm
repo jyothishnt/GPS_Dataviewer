@@ -404,17 +404,17 @@ sub getLiveUsageData :Path('/json/get_live_data/') {
             # Get lat lng from IP
             if ($ip ne '') {
               $m = WWW::Mechanize->new();
-              $url = "http://ipinfo.io/$ip/loc";
+              $url = "http://freegeoip.net/json/$ip/";
               try {
                 $loc = $m->get($url);
-              } catch {
+              } catch {{
                 next;
-              };
+              }};
               $loc = $m->content;
-              chomp $loc;
-
-              if (defined $loc && $loc ne "undefined") {
-                ($t->{latitude}, $t->{longitude}) = split(',', $loc);
+              $loc = from_json($loc);
+              if (defined $loc and $loc->{latitude} != 0 and $loc->{longitude} != 0 ) {
+                $t->{latitude} = $loc->{latitude};
+                $t->{longitude} = $loc->{longitude};
               }
             }
 
