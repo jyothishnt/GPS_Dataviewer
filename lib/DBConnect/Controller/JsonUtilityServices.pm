@@ -399,6 +399,7 @@ sub getLiveUsageData :Path('/json/get_live_data/') {
           my $timeObj = Time::Piece->new;
           my $ts_log = $timeObj->strptime($timeArr[0], '%Y-%m-%d %H:%M:%S');
           my $minAgo = $timeObj - $userTimeLimit;
+              use Data::Dumper;
 
           if ($ts_log > $minAgo) {
             # Get lat lng from IP
@@ -411,12 +412,16 @@ sub getLiveUsageData :Path('/json/get_live_data/') {
                 next;
               }};
               $loc = $m->content;
-              if (JSON::is_bool($loc)) {
+
+              try {
                 $loc = from_json($loc);
-                if (defined $loc and $loc->{latitude} != 0 and $loc->{longitude} != 0 ) {
-                  $t->{latitude} = $loc->{latitude};
-                  $t->{longitude} = $loc->{longitude};
-                }
+              } catch {{
+                next;
+              }};
+
+              if (defined $loc and $loc->{latitude} != 0 and $loc->{longitude} != 0 ) {
+                $t->{latitude} = $loc->{latitude};
+                $t->{longitude} = $loc->{longitude};
               }
             }
 
