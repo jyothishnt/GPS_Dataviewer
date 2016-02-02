@@ -411,10 +411,12 @@ sub getLiveUsageData :Path('/json/get_live_data/') {
                 next;
               }};
               $loc = $m->content;
-              $loc = from_json($loc);
-              if (defined $loc and $loc->{latitude} != 0 and $loc->{longitude} != 0 ) {
-                $t->{latitude} = $loc->{latitude};
-                $t->{longitude} = $loc->{longitude};
+              if (JSON::is_bool($loc)) {
+                $loc = from_json($loc);
+                if (defined $loc and $loc->{latitude} != 0 and $loc->{longitude} != 0 ) {
+                  $t->{latitude} = $loc->{latitude};
+                  $t->{longitude} = $loc->{longitude};
+                }
               }
             }
 
