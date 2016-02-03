@@ -120,8 +120,8 @@ __PACKAGE__->add_columns(
 __PACKAGE__->set_primary_key("gpu_id");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07043 @ 2015-10-08 17:09:03
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:Y4foo8g0kiigOjxVhkY+jA
+# Created by DBIx::Class::Schema::Loader v0.07043 @ 2016-02-03 14:23:09
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:JL9fC/YidEypOMR6Nk0m/A
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

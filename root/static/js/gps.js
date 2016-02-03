@@ -923,6 +923,7 @@ $(document).ready(function(){
       // Making datagrid column field visible
       change_dgcolumns_hidden_property(this.id, true);
       visible_columns.push(this.id);
+      console.log(this.id)
     }
     else {
       $('#dg').datagrid('hideColumn',this.id);
