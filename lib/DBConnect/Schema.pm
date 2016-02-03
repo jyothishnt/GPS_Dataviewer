@@ -7,12 +7,8 @@ package DBConnect::Schema;
 use Moose;
 use MooseX::MarkAsMethods autoclean => 1;
 extends 'DBIx::Class::Schema';
-extends 'DBIx::Class::Schema::Loader';
 
 __PACKAGE__->load_namespaces;
-__PACKAGE__->loader_options(
-  preserve_case => 1
-);
 
 # Created by DBIx::Class::Schema::Loader v0.07039 @ 2014-06-06 12:00:00
 # DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:GLtiEGagOIyoamdMhQDE+A
