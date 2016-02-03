@@ -101,7 +101,7 @@ __PACKAGE__->add_columns(
 
 =head1 UNIQUE CONSTRAINTS
 
-=head2 C<grm_index1>
+=head2 C<grm_index>
 
 =over 4
 
@@ -111,11 +111,11 @@ __PACKAGE__->add_columns(
 
 =cut
 
-__PACKAGE__->add_unique_constraint("grm_index1", ["grm_lane_id"]);
+__PACKAGE__->add_unique_constraint("grm_index", ["grm_lane_id"]);
 
 
-# Created by DBIx::Class::Schema::Loader v0.07043 @ 2015-10-09 13:57:55
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:YShFIcv0lCuQVaVF6HfJ0Q
+# Created by DBIx::Class::Schema::Loader v0.07043 @ 2016-02-03 12:07:12
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:+IxEeDtti0li15uWgkJUsQ
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration
