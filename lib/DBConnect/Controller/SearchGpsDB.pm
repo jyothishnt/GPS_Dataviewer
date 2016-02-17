@@ -392,9 +392,16 @@ sub createQuery {
       $search_str_map->{site_specific} = ' WHERE ';
     }
 
-    $search_str_map->{site_specific} .= ' M.gmd_institution IN ("' . $str . '")';
-    if($c->user->get('gpu_username') eq "testuser") {
-      $search_str_map->{site_specific} .= ' M.gmd_study_name = "Global Strain Bank" ';
+    # For lane access view
+    if($c->user->gpu_institution =~/Other/i) {
+      my $lanes = getLaneAccessData($c, $c->user->gpu_id);
+      $search_str_map->{site_specific} .= ' SC.gss_lane_id IN ("' . join('","', @$lanes) . '") ';
+    }
+    else {
+      $search_str_map->{site_specific} .= ' M.gmd_institution IN ("' . $str . '")';
+      if($c->user->get('gpu_username') eq "testuser") {
+        $search_str_map->{site_specific} .= ' M.gmd_study_name = "Global Strain Bank" ';
+      }
     }
   }
 
@@ -445,6 +452,7 @@ sub getSearchLimitSuffix {
 sub checkDBConnectionAndExecute() {
   my ($qString, $c) = @_;
   my $sth;
+
   # Reconnect to db if connection available
   if(!$c->config->{gps_dbh}->ping) {
     my $attr = {
@@ -465,6 +473,42 @@ sub checkDBConnectionAndExecute() {
     return;
   };
   return $sth;
+}
+
+# Get lane ids for user access
+sub getLaneAccessData {
+  my $c = shift;
+  my $access_id = shift || 0;
+  my $sth;
+
+  # Reconnect to db if connection available
+  if(!$c->config->{gps_dbh}->ping) {
+    my $attr = {
+        mysql_auto_reconnect => $c->config->{mysql_auto_reconnect},
+        AutoCommit => $c->config->{AutoCommit}
+    };
+    $c->log->warn("Re-connected ".$c->config->{dsn});
+    my $dbh = DBI->connect($c->config->{dsn},$c->config->{user},$c->config->{password}, $attr);
+    $c->config->{gps_dbh} = $dbh;
+  }
+  try {
+    my $qString = qq{
+      SELECT gpa_access_id from gps_access where gpa_id = $access_id
+    };
+    $sth = $c->config->{gps_dbh}->prepare($qString) or die;
+    $sth->execute() or die;
+    my $arr = ();
+    my @row = ();
+    while (@row = $sth->fetchrow_array) {
+      push @$arr, $row[0];
+    }
+    return $arr;
+  }
+  catch {
+    my $res = {'err' => 'Error occured while retrieving data', 'errMsg' => qq{$_}};
+    $c->res->body(to_json($res));
+    return;
+  };
 }
 
 # Creating NAME_R1 => NAME map
@@ -489,11 +533,6 @@ sub getSScapeMapForRepeats {
     }
   }
   return $map;
-}
-
-sub getMetadataSearchFields {
-  my $search_data = shift;
-  print Dumper $search_data;
 }
 
 sub getMetadataMapForRepeats {
