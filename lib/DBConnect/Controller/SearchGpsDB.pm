@@ -392,17 +392,24 @@ sub createQuery {
       $search_str_map->{site_specific} = ' WHERE ';
     }
 
-    # For lane access view
-    if($c->user->gpu_institution =~/Other/i) {
-      my $lanes = getLaneAccessData($c, $c->user->gpu_id);
-      $search_str_map->{site_specific} .= ' SC.gss_lane_id IN ("' . join('","', @$lanes) . '") ';
+
+    $search_str_map->{site_specific} .= ' ( M.gmd_institution IN ("' . $str . '") ';
+    if($c->user->get('gpu_username') eq "testuser") {
+      $search_str_map->{site_specific} .= ' ( M.gmd_study_name = "Global Strain Bank" ';
     }
-    else {
-      $search_str_map->{site_specific} .= ' M.gmd_institution IN ("' . $str . '")';
-      if($c->user->get('gpu_username') eq "testuser") {
-        $search_str_map->{site_specific} .= ' M.gmd_study_name = "Global Strain Bank" ';
+
+    # For shared access view
+    my $shared = getSharedData($c, $c->user->gpu_id);
+    if(scalar keys %$shared > 0) {
+      my $q_substr = '';
+      foreach my $share_column_type (keys %$shared) {
+        $q_substr .= ' OR ' . getColumnPrefix($share_column_type) . ".$share_column_type IN (\"" . join('","', @{$shared->{$share_column_type}}) . "\") ";
       }
+
+      $search_str_map->{site_specific} .= $q_substr;
     }
+
+    $search_str_map->{site_specific} .= ' ) ';
   }
 
   $search_str_map->{sort} = getSearchSort($c);
@@ -476,9 +483,9 @@ sub checkDBConnectionAndExecute() {
 }
 
 # Get lane ids for user access
-sub getLaneAccessData {
+sub getSharedData {
   my $c = shift;
-  my $access_id = shift || 0;
+  my $user_id = shift || 0;
   my $sth;
 
   # Reconnect to db if connection available
@@ -493,19 +500,25 @@ sub getLaneAccessData {
   }
   try {
     my $qString = qq{
-      SELECT gpa_access_id from gps_access where gpa_id = $access_id
+      SELECT gsh_share_column, gsh_share_id from gps_share where gsh_id = $user_id
     };
     $sth = $c->config->{gps_dbh}->prepare($qString) or die;
     $sth->execute() or die;
-    my $arr = ();
+    my $res = {};
     my @row = ();
-    while (@row = $sth->fetchrow_array) {
-      push @$arr, $row[0];
+
+    if($sth->rows > 0) {
+      while (@row = $sth->fetchrow_array) {
+        if (defined $row[0] && defined $row[1]) {
+          push @{$res->{$row[0]}}, $row[1];
+        }
+      }
     }
-    return $arr;
+
+    return $res;
   }
   catch {
-    my $res = {'err' => 'Error occured while retrieving data', 'errMsg' => qq{$_}};
+    my $res = {'err' => 'Error occured while retrieving shared data', 'errMsg' => qq{$_}};
     $c->res->body(to_json($res));
     return;
   };
