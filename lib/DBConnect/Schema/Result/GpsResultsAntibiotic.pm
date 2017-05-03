@@ -1168,6 +1168,12 @@ __PACKAGE__->add_columns(
     data_type   => "integer",
     is_nullable => 1,
   },
+  "gra_test",
+  {
+    accessor    => "gra_test",
+    data_type   => "text",
+    is_nullable => 1,
+  }
 );
 
 =head1 UNIQUE CONSTRAINTS

@@ -268,7 +268,8 @@ sub uploadAntibiotic {
             gra_tetO_3_Y07780,
             gra_tetR_sgi1,
             gra_tetS_3_X92946,
-            gra_vgaA_1_M90056
+            gra_vgaA_1_M90056,
+            gra_test
           )
           VALUES ("$lane", $rowString)
             ON DUPLICATE KEY UPDATE
@@ -365,7 +366,8 @@ sub uploadAntibiotic {
               gra_tetO_3_Y07780 = $row->[90],
               gra_tetR_sgi1 = $row->[91],
               gra_tetS_3_X92946 = $row->[92],
-              gra_vgaA_1_M90056 = $row->[93]
+              gra_vgaA_1_M90056 = $row->[93],
+              gra_test = $row->[94]
         };
 
         $rows_affected = $c->config->{gps_dbh}->do($q) or die $!;
