@@ -64,6 +64,8 @@ sub bulkUpload :Path('/bulk_upload/') {
   elsif ($column eq "antibiotic") {
     $res  = uploadAntibiotic($c, $parsedData);
   }
+  elsif ($column eq "CLSI") {
+    $res  = uploadCSLI($c, $parsedData);
   else {
     my $q;
     eval {
@@ -130,6 +132,88 @@ sub uploadMLST {
             grm_spi_insilico = "$row->[4]",
             grm_xpt_insilico = "$row->[5]",
             grm_ddl_insilico = "$row->[6]";
+        };
+
+        $rows_affected = $c->config->{gps_dbh}->do($q) or die $!;
+        if($rows_affected == 0  or $rows_affected eq '0E0') {
+          push @{$res->{rows_not_updated}}, $lane;
+        }
+        else {
+          $res->{rows_updated}++;
+        }
+      }
+      catch {
+        # Updated = 0 due to rollback
+        $res->{rows_updated} = 0;
+        $c->config->{gps_dbh}->rollback();
+        $res->{err} = "Could not complete your request. Please check the input file: $_";
+        last;
+      }
+    }
+  };
+  # If any error occured, then rollback
+  if($@) {
+    eval( $c->config->{gps_dbh}->rollback );
+  }
+
+  return $res;
+}
+
+sub uploadCLSI {
+  my ($c, $parsedData) = @_;
+  my $res = {};
+  $res->{rows_updated} = 0;
+  # print Dumper $parsedData;
+  eval {
+    foreach my $lane (keys %$parsedData) {
+      my $rows_affected;
+      my $row = $parsedData->{$lane};
+      try {
+        my $rowString = '"'. join('","', @$row ) . '"';
+
+        # Create quesry in-string to inject into the mysql query string
+        my $q = qq{
+          INSERT INTO gps_results (
+	    grs_lane_id,
+	    grs_penicillin_CLSI,
+	    grs_amoxicillin_CLSI,
+	    grs_cefotaxine_CLSI,
+	    grs_ceftriaxone_CLSI,
+	    grs_cefuroxime_CLSI,
+	    grs_meropenem_CLSI,
+	    grs_erythromycin_CLSI,
+	    grs_clindamycin_CLSI,
+	    grs_trim_sulfa_CLSI,
+	    grs_vancomycin_CLSI,
+	    grs_linezolid_CLSI,
+	    grs_ciprofloxacin_CLSI,
+	    grs_chloramphenicol_CLSI,
+	    grs_tetracycline_CLSI,
+	    grs_levofloxacin_CLSI,
+	    grs_synercid_CLSI,
+	    grs_rifampin_CLSI
+	  )
+          VALUES ("$lane", $rowString)
+            ON DUPLICATE KEY UPDATE
+	    grs_penicillin_CLSI = "$row->[13]",
+	    grs_amoxicillin_CLSI = "$row->[14]",
+	    grs_cefotaxine_CLSI = "$row->[15]",
+	    grs_ceftriaxone_CLSI = "$row->[16]",
+	    grs_cefuroxime_CLSI = "$row->[17]",
+	    grs_meropenem_CLSI = "$row->[18]",
+	    grs_erythromycin_CLSI = "$row->[19]",
+	    grs_clindamycin_CLSI = "$row->[20]",
+	    grs_trim_sulfa_CLSI = "$row->[21]",
+	    grs_vancomycin_CLSI = "$row->[22]",
+	    grs_linezolid_CLSI = "$row->[23]",
+	    grs_ciprofloxacin_CLSI = "$row->[24]",
+	    grs_chloramphenicol_CLSI = "$row->[25]",
+	    grs_tetracycline_CLSI = "$row->[26]",
+	    grs_levofloxacin_CLSI = "$row->[27]",
+	    grs_synercid_CLSI = "$row->[28]",
+	    grs_rifampin_CLSI = "$row->[29]";
+	    
+	    
         };
 
         $rows_affected = $c->config->{gps_dbh}->do($q) or die $!;
@@ -269,7 +353,12 @@ sub uploadAntibiotic {
             gra_tetR_sgi1,
             gra_tetS_3_X92946,
             gra_vgaA_1_M90056,
-            gra_test
+            gra_folA,
+            gra_folP,
+            gra_gryA,
+            gra_gryB,
+            gra_parC,
+            gra_parE
           )
           VALUES ("$lane", $rowString)
             ON DUPLICATE KEY UPDATE
@@ -367,7 +456,12 @@ sub uploadAntibiotic {
               gra_tetR_sgi1 = $row->[91],
               gra_tetS_3_X92946 = $row->[92],
               gra_vgaA_1_M90056 = $row->[93],
-              gra_test = $row->[94]
+              gra_folA = $row->[94],
+              gra_folP = $row->[95],
+              gra_gryA = $row->[96],
+              gra_gryB = $row->[97],
+              gra_parC = $row->[98],
+              gra_parE = $row->[99]
         };
 
         $rows_affected = $c->config->{gps_dbh}->do($q) or die $!;
