@@ -66,6 +66,7 @@ sub bulkUpload :Path('/bulk_upload/') {
   }
   elsif ($column eq "CLSI") {
     $res  = uploadCSLI($c, $parsedData);
+  }
   else {
     my $q;
     eval {
