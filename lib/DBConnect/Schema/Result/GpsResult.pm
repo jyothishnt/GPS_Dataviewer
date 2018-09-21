@@ -87,11 +87,13 @@ __PACKAGE__->table("gps_results");
   is_nullable: 1
 
 =head2 grs_baps_1
-   data_type: 'text'
+
+  data_type: 'text'
   is_nullable: 1
 
 =head2 grs_baps_2
-   data_type: 'text'
+
+  data_type: 'text'
   is_nullable: 1
 
 =head2 grs_vaccine_status
