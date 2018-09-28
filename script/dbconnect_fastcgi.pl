@@ -2,7 +2,7 @@
 ##!/usr/local/bin/perl 
 
 #use lib '/software/pathogen/internal/prod/lib';
-#use lib '/software/pathogen/external/lib/lib/perl5';
+use lib '/software/pathogen/external/lib/lib/perl5';
 
 use Catalyst::ScriptRunner;
 Catalyst::ScriptRunner->run('DBConnect', 'FastCGI');
